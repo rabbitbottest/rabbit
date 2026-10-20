@@ -19,14 +19,17 @@ function startGcOnce() {
   const timer = setInterval(() => {
     const now = Date.now();
     for (const [key, bucket] of buckets.entries()) {
-      const last = bucket && typeof bucket.lastSeen === 'number' ? bucket.lastSeen : bucket?.start;
+      const last =
+        bucket && typeof bucket.lastSeen === "number"
+          ? bucket.lastSeen
+          : bucket?.start;
       if (!last) continue;
       if (now - last > STALE_AFTER_MS) buckets.delete(key);
     }
   }, GC_INTERVAL_MS);
 
   // Don't keep the process alive just because of the GC timer.
-  if (typeof timer.unref === 'function') timer.unref();
+  if (typeof timer.unref === "function") timer.unref();
 }
 
 /**
@@ -38,7 +41,7 @@ function rateLimit(options = {}) {
   startGcOnce();
   const windowMs = options.windowMs ?? 60_000;
   const max = options.max ?? 120;
-  const keyPrefix = options.keyPrefix ?? 'rl:';
+  const keyPrefix = options.keyPrefix ?? "rl:";
 
   return (req, res, next) => {
     const now = Date.now();
@@ -46,8 +49,13 @@ function rateLimit(options = {}) {
     // Use Express's req.ip. When "trust proxy" is enabled (recommended on Koyeb),
     // Express safely derives the client IP from X-Forwarded-For.
     // Avoid manually parsing XFF, which can be spoofed when trust proxy is off.
-    let ip = (typeof req.ip === 'string' && req.ip) ? req.ip : (req.socket?.remoteAddress || req.connection?.remoteAddress || 'unknown');
-    if (ip.startsWith('::ffff:')) ip = ip.slice(7);
+    let ip =
+      typeof req.ip === "string" && req.ip
+        ? req.ip
+        : req.socket?.remoteAddress ||
+          req.connection?.remoteAddress ||
+          "unknown";
+    if (ip.startsWith("::ffff:")) ip = ip.slice(7);
 
     // IMPORTANT: Include a prefix so each endpoint can have its own bucket.
     // Otherwise different endpoints share the same counter and trigger false 429s.
@@ -74,7 +82,7 @@ function rateLimit(options = {}) {
     if (bucket.count >= max) {
       return res.status(429).json({
         ok: false,
-        error: 'Too many requests',
+        error: "Too many requests",
         retryAfterMs: windowMs - (now - bucket.start),
       });
     }

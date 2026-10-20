@@ -3,19 +3,22 @@
 // Starboard (feature opcional): destaca mensagens que atingem um número de
 // reações configurado, publicando-as num canal dedicado.
 
-const { EmbedBuilder } = require('discord.js');
-const { getFeature } = require('./featuresService');
+const { EmbedBuilder } = require("discord.js");
+const { getFeature } = require("./featuresService");
 
 let StarboardEntry = null;
 try {
-  StarboardEntry = require('../database/models/StarboardEntry');
+  StarboardEntry = require("../database/models/StarboardEntry");
 } catch (err) {
-  console.warn('[starboard] StarboardEntry model not available:', err?.message || err);
+  console.warn(
+    "[starboard] StarboardEntry model not available:",
+    err?.message || err,
+  );
 }
 
 // Compara o emoji configurado com o emoji (nome ou id) da reação.
 function matchEmoji(reaction, emoji) {
-  const target = String(emoji || '').trim();
+  const target = String(emoji || "").trim();
   if (!target) return false;
   const name = reaction.emoji?.name || null;
   const id = reaction.emoji?.id || null;
@@ -54,19 +57,20 @@ function buildEmbed(message, guild, count) {
     message.url ||
     `https://discord.com/channels/${guild.id}/${message.channelId}/${message.id}`;
 
-  const desc = String(message.content || '').slice(0, 1000) || '*(sem conteúdo de texto)*';
+  const desc =
+    String(message.content || "").slice(0, 1000) || "*(sem conteúdo de texto)*";
 
   const embed = new EmbedBuilder()
     .setDescription(desc)
-    .setColor('Yellow')
-    .addFields({ name: 'Original', value: `[Ir para a mensagem](${jumpUrl})` })
+    .setColor("Yellow")
+    .addFields({ name: "Original", value: `[Ir para a mensagem](${jumpUrl})` })
     .setFooter({ text: `${count} reação(ões)` })
     .setTimestamp(new Date());
 
   if (author) {
     embed.setAuthor({
-      name: author.tag || author.username || 'Unknown',
-      iconURL: author.displayAvatarURL?.({ size: 128 }) || undefined
+      name: author.tag || author.username || "Unknown",
+      iconURL: author.displayAvatarURL?.({ size: 128 }) || undefined,
     });
   }
 
@@ -75,8 +79,10 @@ function buildEmbed(message, guild, count) {
 
 async function resolveStarChannel(guild, channelId) {
   if (!channelId) return null;
-  const ch = guild.channels.cache.get(channelId) || await guild.channels.fetch(channelId).catch(() => null);
-  if (ch && typeof ch.send === 'function') return ch;
+  const ch =
+    guild.channels.cache.get(channelId) ||
+    (await guild.channels.fetch(channelId).catch(() => null));
+  if (ch && typeof ch.send === "function") return ch;
   return null;
 }
 
@@ -87,12 +93,12 @@ async function publishOrUpdate(message, guild, cfg, count) {
       $set: {
         channelId: message.channelId,
         authorId: message.author?.id || null,
-        count
-      }
+        count,
+      },
     },
-    { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }
+    { upsert: true, returnDocument: "after", setDefaultsOnInsert: true },
   ).catch((err) => {
-    console.error('[starboard] Failed to upsert entry:', err);
+    console.error("[starboard] Failed to upsert entry:", err);
     return null;
   });
 
@@ -105,16 +111,23 @@ async function publishOrUpdate(message, guild, cfg, count) {
   const content = `${cfg.emoji} **${count}** <#${message.channelId}>`;
 
   if (entry.starboardMessageId) {
-    const existing = await starChannel.messages.fetch(entry.starboardMessageId).catch(() => null);
+    const existing = await starChannel.messages
+      .fetch(entry.starboardMessageId)
+      .catch(() => null);
     if (existing) {
       await existing.edit({ content, embeds: [embed] }).catch(() => null);
       return;
     }
   }
 
-  const sent = await starChannel.send({ content, embeds: [embed] }).catch(() => null);
+  const sent = await starChannel
+    .send({ content, embeds: [embed] })
+    .catch(() => null);
   if (sent) {
-    await StarboardEntry.updateOne({ _id: entry._id }, { $set: { starboardMessageId: sent.id } }).catch(() => null);
+    await StarboardEntry.updateOne(
+      { _id: entry._id },
+      { $set: { starboardMessageId: sent.id } },
+    ).catch(() => null);
   }
 }
 
@@ -127,7 +140,7 @@ async function handleReactionAdd(reaction, user) {
     if (!ctx) return;
     const { message, guild } = ctx;
 
-    const cfg = await getFeature(guild.id, 'starboard');
+    const cfg = await getFeature(guild.id, "starboard");
     if (cfg?.enabled !== true) return;
     if (!cfg.channelId) return;
     // NUNCA fazer starboard do próprio canal do starboard.
@@ -142,11 +155,11 @@ async function handleReactionAdd(reaction, user) {
 
     await publishOrUpdate(message, guild, cfg, count);
   } catch (err) {
-    console.error('[starboard] handleReactionAdd error:', err);
+    console.error("[starboard] handleReactionAdd error:", err);
   }
 }
 
-async function handleReactionRemove(reaction, user) {
+async function handleReactionRemove(reaction, _user) {
   try {
     if (!StarboardEntry) return;
 
@@ -154,13 +167,18 @@ async function handleReactionRemove(reaction, user) {
     if (!ctx) return;
     const { message, guild } = ctx;
 
-    const cfg = await getFeature(guild.id, 'starboard');
+    const cfg = await getFeature(guild.id, "starboard");
     if (cfg?.enabled !== true) return;
     if (!cfg.channelId) return;
     if (message.channelId === cfg.channelId) return;
     if (!matchEmoji(reaction, cfg.emoji)) return;
 
-    const entry = await StarboardEntry.findOne({ guildId: guild.id, sourceMessageId: message.id }).lean().catch(() => null);
+    const entry = await StarboardEntry.findOne({
+      guildId: guild.id,
+      sourceMessageId: message.id,
+    })
+      .lean()
+      .catch(() => null);
     if (!entry) return;
 
     const count = Math.max(0, Number(reaction.count) || 0);
@@ -170,7 +188,9 @@ async function handleReactionRemove(reaction, user) {
     if (count < threshold) {
       const starChannel = await resolveStarChannel(guild, cfg.channelId);
       if (starChannel && entry.starboardMessageId) {
-        const existing = await starChannel.messages.fetch(entry.starboardMessageId).catch(() => null);
+        const existing = await starChannel.messages
+          .fetch(entry.starboardMessageId)
+          .catch(() => null);
         if (existing) await existing.delete().catch(() => null);
       }
       await StarboardEntry.deleteOne({ _id: entry._id }).catch(() => null);
@@ -178,23 +198,31 @@ async function handleReactionRemove(reaction, user) {
     }
 
     // Atualiza a contagem na entrada (e na mensagem, se existir).
-    await StarboardEntry.updateOne({ _id: entry._id }, { $set: { count } }).catch(() => null);
+    await StarboardEntry.updateOne(
+      { _id: entry._id },
+      { $set: { count } },
+    ).catch(() => null);
 
     const starChannel = await resolveStarChannel(guild, cfg.channelId);
     if (starChannel && entry.starboardMessageId) {
-      const existing = await starChannel.messages.fetch(entry.starboardMessageId).catch(() => null);
+      const existing = await starChannel.messages
+        .fetch(entry.starboardMessageId)
+        .catch(() => null);
       if (existing) {
         await existing
-          .edit({ content: `${cfg.emoji} **${count}** <#${message.channelId}>`, embeds: [buildEmbed(message, guild, count)] })
+          .edit({
+            content: `${cfg.emoji} **${count}** <#${message.channelId}>`,
+            embeds: [buildEmbed(message, guild, count)],
+          })
           .catch(() => null);
       }
     }
   } catch (err) {
-    console.error('[starboard] handleReactionRemove error:', err);
+    console.error("[starboard] handleReactionRemove error:", err);
   }
 }
 
 module.exports = {
   handleReactionAdd,
-  handleReactionRemove
+  handleReactionRemove,
 };

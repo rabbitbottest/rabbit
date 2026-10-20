@@ -1,14 +1,17 @@
 // src/systems/automation.js
 // Regras de automação adicionais (auto-mute baseado em trust / warns)
 
-const { PermissionsBitField } = require('discord.js');
-const config = require('../config/defaultConfig');
-const { getGuildTrustConfig, getEffectiveMuteDuration } = require('../utils/trust');
-const infractionsService = require('./infractionsService');
-const warningsService = require('./warningsService');
-const logger = require('./logger');
-const { fetchMember } = require('../services/discordFetchCache');
-const { tContext } = require('./i18n');
+const { PermissionsBitField } = require("discord.js");
+const config = require("../config/defaultConfig");
+const {
+  getGuildTrustConfig,
+  getEffectiveMuteDuration,
+} = require("../utils/trust");
+const infractionsService = require("./infractionsService");
+const warningsService = require("./warningsService");
+const logger = require("./logger");
+const { fetchMember } = require("../services/discordFetchCache");
+const { tContext } = require("./i18n");
 
 /**
  * Lida com automação após criação de uma infração (por exemplo, WARN).
@@ -30,7 +33,7 @@ async function handleInfractionAutomation(opts) {
     if (!autoMuteCfg || autoMuteCfg.enabled === false) return;
 
     // Só reagimos a WARN/MUTE (normalmente WARN)
-    if (type !== 'WARN' && type !== 'MUTE') return;
+    if (type !== "WARN" && type !== "MUTE") return;
 
     const me = guild.members.me;
     if (!me) return;
@@ -42,17 +45,19 @@ async function handleInfractionAutomation(opts) {
 
     try {
       trustUser = await warningsService.getOrCreateUser(guild.id, user.id);
-      if (trustUser && typeof trustUser.warnings === 'number') {
+      if (trustUser && typeof trustUser.warnings === "number") {
         warnsCount = trustUser.warnings;
       }
     } catch (err) {
-      console.warn('[automation] failed to load user warnings/trust:', err?.message || err);
+      console.warn(
+        "[automation] failed to load user warnings/trust:",
+        err?.message || err,
+      );
       return;
     }
 
-    const threshold = typeof autoMuteCfg.warnsToMute === 'number'
-      ? autoMuteCfg.warnsToMute
-      : 3;
+    const threshold =
+      typeof autoMuteCfg.warnsToMute === "number" ? autoMuteCfg.warnsToMute : 3;
 
     if (!threshold || warnsCount < threshold) {
       return;
@@ -60,18 +65,24 @@ async function handleInfractionAutomation(opts) {
 
     // Base de duração configurada
     const baseDurationMs =
-      typeof autoMuteCfg.muteDurationMs === 'number'
+      typeof autoMuteCfg.muteDurationMs === "number"
         ? autoMuteCfg.muteDurationMs
         : 10 * 60 * 1000; // 10 minutos por omissão
 
     // Duração efetiva calculada com o mesmo helper usado na dashboard (getEffectiveMuteDuration)
     const trustCfg = await getGuildTrustConfig(guild.id);
     const trustValue =
-      trustUser && typeof trustUser.trust === 'number'
+      trustUser && typeof trustUser.trust === "number"
         ? trustUser.trust
-        : (typeof trustCfg.base === 'number' ? trustCfg.base : 0);
+        : typeof trustCfg.base === "number"
+          ? trustCfg.base
+          : 0;
 
-    const durationMs = getEffectiveMuteDuration(baseDurationMs, trustCfg, trustValue);
+    const durationMs = getEffectiveMuteDuration(
+      baseDurationMs,
+      trustCfg,
+      trustValue,
+    );
 
     const member = await fetchMember(guild, user.id);
     if (!member) return;
@@ -82,18 +93,23 @@ async function handleInfractionAutomation(opts) {
     }
 
     try {
-      await member.timeout(durationMs, 'Auto-mute (automation)').catch((err) => {
-        console.warn('[automation] failed timeout:', err?.message || err);
-      });
+      await member
+        .timeout(durationMs, "Auto-mute (automation)")
+        .catch((err) => {
+          console.warn("[automation] failed timeout:", err?.message || err);
+        });
     } catch (err) {
-      console.warn('[automation] timeout threw:', err?.message || err);
+      console.warn("[automation] timeout threw:", err?.message || err);
     }
 
     // Aplicar penalização de trust associada ao mute
     try {
       await warningsService.applyMutePenalty(guild.id, user.id);
     } catch (err) {
-      console.warn('[automation] failed to apply mute penalty:', err?.message || err);
+      console.warn(
+        "[automation] failed to apply mute penalty:",
+        err?.message || err,
+      );
     }
 
     // Criar infração MUTE dedicada (para aparecer em logs / dashboard)
@@ -103,39 +119,42 @@ async function handleInfractionAutomation(opts) {
         guild,
         user,
         moderator: moderator || client.user,
-        type: 'MUTE',
-        reason: 'Auto-mute (automation)',
+        type: "MUTE",
+        reason: "Auto-mute (automation)",
         duration: durationMs,
-        source: 'automation'
+        source: "automation",
       });
     } catch (err) {
-      console.warn('[automation] failed to create MUTE infraction:', err?.message || err);
+      console.warn(
+        "[automation] failed to create MUTE infraction:",
+        err?.message || err,
+      );
     }
 
     const mins = Math.max(1, Math.round(durationMs / 60000));
-    const casePrefix = inf?.caseId ? `Case: **#${inf.caseId}**\n` : '';
+    const casePrefix = inf?.caseId ? `Case: **#${inf.caseId}**\n` : "";
 
     try {
       await logger(
         client,
-        'Automation: Auto-Mute',
+        "Automation: Auto-Mute",
         user,
         moderator || client.user,
         casePrefix +
-          await tContext(guild, 'log.actions.automodMute', {
+          (await tContext(guild, "log.actions.automodMute", {
             minutes: mins,
-            trustAfter: 'N/A'
-          }),
-        guild
+            trustAfter: "N/A",
+          })),
+        guild,
       ).catch(() => null);
     } catch {
       // ignore logger errors
     }
   } catch (err) {
-    console.error('[automation] handleInfractionAutomation error:', err);
+    console.error("[automation] handleInfractionAutomation error:", err);
   }
 }
 
 module.exports = {
-  handleInfractionAutomation
+  handleInfractionAutomation,
 };

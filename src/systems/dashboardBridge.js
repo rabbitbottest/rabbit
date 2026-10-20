@@ -13,7 +13,7 @@ let sendToDashboardFn = null;
  * Normalmente chamada a partir de src/dashboard.js.
  */
 function setSender(fn) {
-  if (typeof fn === 'function') {
+  if (typeof fn === "function") {
     sendToDashboardFn = fn;
   } else {
     sendToDashboardFn = null;
@@ -24,12 +24,12 @@ function setSender(fn) {
  * Emite um evento para o dashboard, se houver função registada.
  */
 function emit(event, payload) {
-  if (typeof sendToDashboardFn !== 'function') return;
+  if (typeof sendToDashboardFn !== "function") return;
 
   try {
     sendToDashboardFn(event, payload);
   } catch (err) {
-    console.error('[DashboardBridge] Failed to emit to dashboard:', err);
+    console.error("[DashboardBridge] Failed to emit to dashboard:", err);
   }
 }
 

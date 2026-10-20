@@ -10,7 +10,7 @@
  * @returns {{name: string, id: string}|null}
  */
 function customEmojiParts(value) {
-  const m = String(value == null ? '' : value).match(/^<a?:([^:>]+):(\d+)>$/);
+  const m = String(value == null ? "" : value).match(/^<a?:([^:>]+):(\d+)>$/);
   if (!m) return null;
   return { name: m[1], id: m[2] };
 }
@@ -28,10 +28,11 @@ function emojiMatches(configured, reactionEmoji) {
 
   const rName = reactionEmoji.name || null;
   const rId = reactionEmoji.id || null;
-  const rIdentifier = reactionEmoji.identifier || (rName && rId ? `${rName}:${rId}` : null);
+  const rIdentifier =
+    reactionEmoji.identifier || (rName && rId ? `${rName}:${rId}` : null);
 
   const candidates = [raw];
-  if (raw.length > 2 && raw.startsWith(':') && raw.endsWith(':')) {
+  if (raw.length > 2 && raw.startsWith(":") && raw.endsWith(":")) {
     candidates.push(raw.slice(1, -1));
   }
   const custom = customEmojiParts(raw);
@@ -57,18 +58,21 @@ function emojiMatches(configured, reactionEmoji) {
  */
 function resolveShortcodes(entries, guild) {
   const list = Array.isArray(entries) ? entries : [];
-  const cache = guild && guild.emojis && guild.emojis.cache ? guild.emojis.cache : null;
+  const cache =
+    guild && guild.emojis && guild.emojis.cache ? guild.emojis.cache : null;
   if (!cache) return list;
 
   return list.map((entry) => {
-    const raw = String((entry && entry.emoji) || '').trim();
+    const raw = String((entry && entry.emoji) || "").trim();
     const m = raw.match(/^:([^:]+):$/);
     if (!m) return entry;
 
     const found = cache.find((e) => e.name === m[1]);
     if (!found) return entry;
 
-    const emoji = found.animated ? `<a:${found.name}:${found.id}>` : `<:${found.name}:${found.id}>`;
+    const emoji = found.animated
+      ? `<a:${found.name}:${found.id}>`
+      : `<:${found.name}:${found.id}>`;
     return { ...entry, emoji };
   });
 }
@@ -80,19 +84,24 @@ function resolveShortcodes(entries, guild) {
  * @returns {string|null}
  */
 function toReactable(configured) {
-  const raw = String(configured == null ? '' : configured).trim();
+  const raw = String(configured == null ? "" : configured).trim();
   if (!raw) return null;
 
   const custom = customEmojiParts(raw);
   if (custom) {
-    const prefix = /^<a:/i.test(raw) ? 'a:' : ':';
+    const prefix = /^<a:/i.test(raw) ? "a:" : ":";
     return `<${prefix}${custom.name}:${custom.id}>`;
   }
 
   // ":nome:" não pode ser resolvido sem o id do emoji.
-  if (raw.length > 2 && raw.startsWith(':') && raw.endsWith(':')) return null;
+  if (raw.length > 2 && raw.startsWith(":") && raw.endsWith(":")) return null;
 
   return raw;
 }
 
-module.exports = { emojiMatches, toReactable, customEmojiParts, resolveShortcodes };
+module.exports = {
+  emojiMatches,
+  toReactable,
+  customEmojiParts,
+  resolveShortcodes,
+};

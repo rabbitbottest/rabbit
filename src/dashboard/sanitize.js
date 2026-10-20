@@ -8,15 +8,15 @@
  * remove tags HTML para reduzir payloads XSS em dados persistidos.
  */
 function sanitizeText(value, { maxLen = 1000, stripHtml = true } = {}) {
-  if (value === null || value === undefined) return '';
+  if (value === null || value === undefined) return "";
   let str = String(value).trim();
 
   // remove control chars
-  str = str.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+  str = str.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "");
 
   // strip basic HTML tags to reduce XSS payloads in stored data
   if (stripHtml) {
-    str = str.replace(/<[^>]*>/g, '');
+    str = str.replace(/<[^>]*>/g, "");
   }
 
   if (str.length > maxLen) str = str.slice(0, maxLen);
@@ -30,7 +30,7 @@ function sanitizeText(value, { maxLen = 1000, stripHtml = true } = {}) {
 function sanitizeId(value) {
   // IDs can arrive wrapped in Discord mention syntax; keep the raw digits.
   const s = sanitizeText(value, { maxLen: 64, stripHtml: false });
-  const digitsOnly = s.replace(/\D/g, '');
+  const digitsOnly = s.replace(/\D/g, "");
   return digitsOnly.slice(0, 20);
 }
 

@@ -1,15 +1,17 @@
 // src/systems/configManager.js
 
-const fs = require('fs');
-const path = require('path');
-const config = require('../config/defaultConfig');
+const fs = require("fs");
+const path = require("path");
+const config = require("../config/defaultConfig");
 
 function isPlainObject(v) {
-  return Boolean(v) && typeof v === 'object' && !Array.isArray(v);
+  return Boolean(v) && typeof v === "object" && !Array.isArray(v);
 }
 
 function deepGet(obj, pathStr) {
-  const parts = String(pathStr || '').split('.').filter(Boolean);
+  const parts = String(pathStr || "")
+    .split(".")
+    .filter(Boolean);
   let cur = obj;
   for (const p of parts) {
     if (!isPlainObject(cur) && !Array.isArray(cur)) return undefined;
@@ -20,7 +22,9 @@ function deepGet(obj, pathStr) {
 }
 
 function deepSet(obj, pathStr, value) {
-  const parts = String(pathStr || '').split('.').filter(Boolean);
+  const parts = String(pathStr || "")
+    .split(".")
+    .filter(Boolean);
   if (!parts.length) return;
 
   let cur = obj;
@@ -33,7 +37,9 @@ function deepSet(obj, pathStr, value) {
 }
 
 function deepDelete(obj, pathStr) {
-  const parts = String(pathStr || '').split('.').filter(Boolean);
+  const parts = String(pathStr || "")
+    .split(".")
+    .filter(Boolean);
   if (!parts.length) return;
 
   let cur = obj;
@@ -60,182 +66,182 @@ function cloneJsonSafe(v) {
 // ✅ Only allow safe runtime edits here.
 // DO NOT include role IDs, channel IDs, feeds, staffRoles, guildId, TOKEN, etc.
 const ALLOWED_PATHS = new Set([
-  'language',
-  'notifications.dmOnWarn',
-  'notifications.dmOnMute',
-  'maxWarnings',
-  'muteDuration',
+  "language",
+  "notifications.dmOnWarn",
+  "notifications.dmOnMute",
+  "maxWarnings",
+  "muteDuration",
 
-  'antiSpam.enabled',
-  'antiSpam.interval',
-  'antiSpam.maxMessages',
-  'antiSpam.muteDuration',
-  'antiSpam.actionCooldown',
-  'antiSpam.bypassAdmins',
-  'antiSpam.sendMessage',
-  'antiSpam.minLength',
-  'antiSpam.ignoreAttachments',
-  'antiSpam.similarityThreshold',
+  "antiSpam.enabled",
+  "antiSpam.interval",
+  "antiSpam.maxMessages",
+  "antiSpam.muteDuration",
+  "antiSpam.actionCooldown",
+  "antiSpam.bypassAdmins",
+  "antiSpam.sendMessage",
+  "antiSpam.minLength",
+  "antiSpam.ignoreAttachments",
+  "antiSpam.similarityThreshold",
 
-  'dashboard.maxLogs',
-  'dashboard.maxDbLogs',
+  "dashboard.maxLogs",
+  "dashboard.maxDbLogs",
 
-  'gameNews.enabled',
-  'gameNews.logEnabled',
-  'gameNews.interval',
-  'gameNews.maxPerCycle',
-  'gameNews.keepHashes',
-  'gameNews.maxAgeDays',
-  'gameNews.jitterMs',
-  'gameNews.perFeedJitterMs',
-  'gameNews.retry.attempts',
-  'gameNews.retry.baseDelayMs',
-  'gameNews.retry.jitterMs',
-  'gameNews.backoff.maxFails',
-  'gameNews.backoff.pauseMs',
+  "gameNews.enabled",
+  "gameNews.logEnabled",
+  "gameNews.interval",
+  "gameNews.maxPerCycle",
+  "gameNews.keepHashes",
+  "gameNews.maxAgeDays",
+  "gameNews.jitterMs",
+  "gameNews.perFeedJitterMs",
+  "gameNews.retry.attempts",
+  "gameNews.retry.baseDelayMs",
+  "gameNews.retry.jitterMs",
+  "gameNews.backoff.maxFails",
+  "gameNews.backoff.pauseMs",
 
-  'tickets.autoDeleteClosed.enabled',
-  'tickets.autoDeleteClosed.delayMs',
+  "tickets.autoDeleteClosed.enabled",
+  "tickets.autoDeleteClosed.delayMs",
 
-  'automation.enabled',
-  'automation.autoMute.enabled',
-  'automation.autoMute.warnsToMute',
-  'automation.autoMute.muteDurationMs',
+  "automation.enabled",
+  "automation.autoMute.enabled",
+  "automation.autoMute.warnsToMute",
+  "automation.autoMute.muteDurationMs",
 
-  'slash.enabled',
-  'slash.registerOnStartup'
+  "slash.enabled",
+  "slash.registerOnStartup",
 ]);
 
 function validateValue(pathStr, value) {
   // Stronger validation (still permissive enough to avoid regressions).
   // Goal: prevent obviously invalid configs (negative durations, NaN, extreme values).
 
-  const isFiniteNumber = (n) => typeof n === 'number' && Number.isFinite(n);
+  const isFiniteNumber = (n) => typeof n === "number" && Number.isFinite(n);
   const isInt = (n) => isFiniteNumber(n) && Number.isInteger(n);
   const inRange = (n, min, max) => isFiniteNumber(n) && n >= min && n <= max;
   const inRangeInt = (n, min, max) => isInt(n) && n >= min && n <= max;
 
-  if (pathStr === 'language') {
-    return value === 'pt' || value === 'en';
+  if (pathStr === "language") {
+    return value === "pt" || value === "en";
   }
 
   // booleans
   const boolPaths = new Set([
-    'notifications.dmOnWarn',
-    'notifications.dmOnMute',
-    'trust.enabled',
-    'antiSpam.enabled',
-    'antiSpam.softActions.enabled',
-    'antiSpam.bypassAdmins',
-    'antiSpam.sendMessage',
-    'antiSpam.ignoreAttachments',
-    'gameNews.enabled',
-    'gameNews.logEnabled',
-    'tickets.autoDeleteClosed.enabled',
-    'automation.enabled',
-    'automation.autoMute.enabled',
-    'slash.enabled',
-    'slash.registerOnStartup'
+    "notifications.dmOnWarn",
+    "notifications.dmOnMute",
+    "trust.enabled",
+    "antiSpam.enabled",
+    "antiSpam.softActions.enabled",
+    "antiSpam.bypassAdmins",
+    "antiSpam.sendMessage",
+    "antiSpam.ignoreAttachments",
+    "gameNews.enabled",
+    "gameNews.logEnabled",
+    "tickets.autoDeleteClosed.enabled",
+    "automation.enabled",
+    "automation.autoMute.enabled",
+    "slash.enabled",
+    "slash.registerOnStartup",
   ]);
-  if (boolPaths.has(pathStr)) return typeof value === 'boolean';
+  if (boolPaths.has(pathStr)) return typeof value === "boolean";
 
   // Per-path numeric constraints
   switch (pathStr) {
-    case 'maxWarnings':
+    case "maxWarnings":
       return inRangeInt(value, 0, 50);
-    case 'muteDuration':
+    case "muteDuration":
       // ms: 0..30 days
       return inRangeInt(value, 0, 30 * 24 * 60 * 60 * 1000);
 
     // Trust core
-    case 'trust.base':
-    case 'trust.min':
-    case 'trust.max':
-    case 'trust.lowThreshold':
-    case 'trust.highThreshold':
+    case "trust.base":
+    case "trust.min":
+    case "trust.max":
+    case "trust.lowThreshold":
+    case "trust.highThreshold":
       return inRangeInt(value, 0, 100);
 
-    case 'trust.warnPenalty':
-    case 'trust.mutePenalty':
+    case "trust.warnPenalty":
+    case "trust.mutePenalty":
       return inRangeInt(value, 0, 100);
 
-    case 'trust.regenPerDay':
+    case "trust.regenPerDay":
       return inRangeInt(value, 0, 50);
-    case 'trust.regenMaxDays':
+    case "trust.regenMaxDays":
       return inRangeInt(value, 0, 365);
 
-    case 'trust.lowTrustWarningsPenalty':
-    case 'trust.lowTrustMessagesPenalty':
-    case 'trust.highTrustMessagesBonus':
+    case "trust.lowTrustWarningsPenalty":
+    case "trust.lowTrustMessagesPenalty":
+    case "trust.highTrustMessagesBonus":
       return inRangeInt(value, 0, 25);
 
-    case 'trust.lowTrustMuteMultiplier':
-    case 'trust.highTrustMuteMultiplier':
+    case "trust.lowTrustMuteMultiplier":
+    case "trust.highTrustMuteMultiplier":
       return inRange(value, 0.1, 10);
 
     // Anti-spam
-    case 'antiSpam.interval':
-    case 'antiSpam.muteDuration':
-    case 'antiSpam.actionCooldown':
+    case "antiSpam.interval":
+    case "antiSpam.muteDuration":
+    case "antiSpam.actionCooldown":
       // ms: 0..24h
       return inRangeInt(value, 0, 24 * 60 * 60 * 1000);
 
-    case 'antiSpam.softActions.strikeWindowMs':
+    case "antiSpam.softActions.strikeWindowMs":
       return inRangeInt(value, 0, 24 * 60 * 60 * 1000);
-    case 'antiSpam.softActions.strikesToMute':
+    case "antiSpam.softActions.strikesToMute":
       return inRangeInt(value, 1, 10);
 
-    case 'antiSpam.maxMessages':
+    case "antiSpam.maxMessages":
       return inRangeInt(value, 1, 100);
 
-    case 'antiSpam.minLength':
+    case "antiSpam.minLength":
       return inRangeInt(value, 0, 500);
 
-    case 'antiSpam.similarityThreshold':
+    case "antiSpam.similarityThreshold":
       return inRange(value, 0, 1);
 
     // Dashboard
-    case 'dashboard.maxLogs':
+    case "dashboard.maxLogs":
       return inRangeInt(value, 10, 2000);
-    case 'dashboard.maxDbLogs':
+    case "dashboard.maxDbLogs":
       return inRangeInt(value, 50, 20000);
 
     // GameNews
-    case 'gameNews.interval':
-    case 'gameNews.maxPerCycle':
+    case "gameNews.interval":
+    case "gameNews.maxPerCycle":
       return inRangeInt(value, 1, 10);
 
-    case 'gameNews.jitterMs':
-    case 'gameNews.perFeedJitterMs':
+    case "gameNews.jitterMs":
+    case "gameNews.perFeedJitterMs":
       return inRangeInt(value, 0, 24 * 60 * 60 * 1000);
 
-    case 'gameNews.keepHashes':
+    case "gameNews.keepHashes":
       return inRangeInt(value, 1, 200);
 
-    case 'gameNews.maxAgeDays':
+    case "gameNews.maxAgeDays":
       return inRangeInt(value, 1, 365);
 
-    case 'gameNews.retry.attempts':
+    case "gameNews.retry.attempts":
       return inRangeInt(value, 0, 10);
 
-    case 'gameNews.retry.baseDelayMs':
-    case 'gameNews.retry.jitterMs':
+    case "gameNews.retry.baseDelayMs":
+    case "gameNews.retry.jitterMs":
       return inRangeInt(value, 0, 60 * 1000);
 
-    case 'gameNews.backoff.maxFails':
+    case "gameNews.backoff.maxFails":
       return inRangeInt(value, 0, 20);
 
-    case 'gameNews.backoff.pauseMs':
+    case "gameNews.backoff.pauseMs":
       return inRangeInt(value, 0, 7 * 24 * 60 * 60 * 1000);
 
     // Tickets
-    case 'tickets.autoDeleteClosed.delayMs':
+    case "tickets.autoDeleteClosed.delayMs":
       return inRangeInt(value, 0, 365 * 24 * 60 * 60 * 1000);
 
     // Automation
-    case 'automation.autoMute.warnsToMute':
+    case "automation.autoMute.warnsToMute":
       return inRangeInt(value, 1, 50);
-    case 'automation.autoMute.muteDurationMs':
+    case "automation.autoMute.muteDurationMs":
       return inRangeInt(value, 0, 30 * 24 * 60 * 60 * 1000);
 
     default:
@@ -244,7 +250,7 @@ function validateValue(pathStr, value) {
   }
 }
 
-function flattenPatch(obj, prefix = '', out = {}) {
+function flattenPatch(obj, prefix = "", out = {}) {
   if (!isPlainObject(obj)) return out;
 
   for (const [k, v] of Object.entries(obj)) {
@@ -258,17 +264,15 @@ function flattenPatch(obj, prefix = '', out = {}) {
   return out;
 }
 
-const overridesPath = path.join(__dirname, '../config/overrides.json');
+const overridesPath = path.join(__dirname, "../config/overrides.json");
 
 // Allow setting `null` to clear an override (fallback to default behavior).
-const NULLABLE_PATHS = new Set([
-  'gameNews.maxPerCycle'
-]);
+const NULLABLE_PATHS = new Set(["gameNews.maxPerCycle"]);
 
 function readOverrides() {
   try {
     if (!fs.existsSync(overridesPath)) return {};
-    const raw = fs.readFileSync(overridesPath, 'utf8');
+    const raw = fs.readFileSync(overridesPath, "utf8");
     const o = JSON.parse(raw);
     return isPlainObject(o) ? o : {};
   } catch {
@@ -277,7 +281,7 @@ function readOverrides() {
 }
 
 function writeOverrides(obj) {
-  fs.writeFileSync(overridesPath, JSON.stringify(obj, null, 2), 'utf8');
+  fs.writeFileSync(overridesPath, JSON.stringify(obj, null, 2), "utf8");
 }
 
 function getPublicConfig() {
@@ -307,14 +311,13 @@ function getEditableSchema() {
   // Simple schema for UI rendering.
   // You can expand this later (min/max, steps, etc.)
   return {
-    allowedPaths: Array.from(ALLOWED_PATHS)
+    allowedPaths: Array.from(ALLOWED_PATHS),
   };
 }
 
-
 function applyPatch(payload) {
   if (!isPlainObject(payload)) {
-    return { ok: false, error: 'Patch must be an object.' };
+    return { ok: false, error: "Patch must be an object." };
   }
 
   const overrides = readOverrides();
@@ -327,7 +330,7 @@ function applyPatch(payload) {
   let patchList = [];
   if (Array.isArray(payload.patches)) {
     patchList = payload.patches
-      .filter((p) => p && typeof p.path === 'string')
+      .filter((p) => p && typeof p.path === "string")
       .map((p) => ({ path: String(p.path), value: p.value }));
   } else {
     const flat = flattenPatch(payload);
@@ -368,17 +371,16 @@ function applyPatch(payload) {
   try {
     writeOverrides(overrides);
   } catch (e) {
-    return { ok: false, error: e?.message || 'Failed writing overrides.' };
+    return { ok: false, error: e?.message || "Failed writing overrides." };
   }
 
   return {
     ok: true,
     applied,
     rejected,
-    config: getPublicConfig()
+    config: getPublicConfig(),
   };
 }
-
 
 function getValue(pathStr) {
   if (!ALLOWED_PATHS.has(pathStr)) return undefined;
@@ -389,5 +391,5 @@ module.exports = {
   getPublicConfig,
   getEditableSchema,
   applyPatch,
-  getValue
+  getValue,
 };

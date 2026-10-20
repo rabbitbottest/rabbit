@@ -16,7 +16,7 @@ const status = {
   totalCommandsExecuted: 0,
   totalInfractionsCreated: 0,
   autoModActions: 0,
-  antiSpamActions: 0
+  antiSpamActions: 0,
 };
 
 function getStatus() {
@@ -42,7 +42,7 @@ function getStatus() {
     totalCommandsExecuted: status.totalCommandsExecuted,
     totalInfractionsCreated: status.totalInfractionsCreated,
     autoModActions: status.autoModActions,
-    antiSpamActions: status.antiSpamActions
+    antiSpamActions: status.antiSpamActions,
   };
 }
 
@@ -77,8 +77,6 @@ function incrementAntiSpamActions() {
   status.antiSpamActions += 1;
 }
 
-
-
 function setGiveawaysRunning(value = true) {
   status.giveawaysRunning = Boolean(value);
   if (value) status.lastGiveawaysStartedAt = new Date().toISOString();
@@ -93,5 +91,5 @@ module.exports = {
   incrementCommands,
   incrementInfractions,
   incrementAutoModActions,
-  incrementAntiSpamActions
+  incrementAntiSpamActions,
 };

@@ -1,6 +1,6 @@
 // src/database/models/GameNews.js
 
-const { Schema, model } = require('mongoose');
+const { Schema, model } = require("mongoose");
 
 const gameNewsSchema = new Schema(
   {
@@ -9,7 +9,7 @@ const gameNewsSchema = new Schema(
     source: {
       type: String,
       required: true,
-      unique: true
+      unique: true,
     },
 
     // Optional metadata (helps debugging / future migrations)
@@ -20,29 +20,29 @@ const gameNewsSchema = new Schema(
 
     lastHashes: {
       type: [String],
-      default: []
+      default: [],
     },
 
     failCount: {
       type: Number,
-      default: 0
+      default: 0,
     },
 
     pausedUntil: {
       type: Date,
-      default: null
+      default: null,
     },
 
     lastSentAt: {
       type: Date,
-      default: null
+      default: null,
     },
 
     // Last error message observed for this feed (cleared on success).
     // Surfaced in the dashboard so admins can diagnose failing feeds.
     lastError: {
       type: String,
-      default: null
+      default: null,
     },
 
     // Rolling per-day counters of news sent (kept small: last N days).
@@ -52,24 +52,24 @@ const gameNewsSchema = new Schema(
         {
           _id: false,
           day: { type: String },
-          count: { type: Number, default: 0 }
-        }
+          count: { type: Number, default: 0 },
+        },
       ],
-      default: []
+      default: [],
     },
 
     // HTTP cache hints for conditional RSS fetch (ETag / Last-Modified).
     // These reduce bandwidth/CPU by enabling 304 Not Modified.
     etag: {
       type: String,
-      default: null
+      default: null,
     },
     lastModified: {
       type: String,
-      default: null
-    }
+      default: null,
+    },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
-module.exports = model('GameNews', gameNewsSchema);
+module.exports = model("GameNews", gameNewsSchema);

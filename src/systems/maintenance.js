@@ -8,11 +8,11 @@
  * Mantém a base de dados mais leve ao longo do tempo.
  */
 
-const Infraction = require('../database/models/Infraction');
+const Infraction = require("../database/models/Infraction");
 let DashboardLog = null;
 
 try {
-  DashboardLog = require('../database/models/DashboardLog');
+  DashboardLog = require("../database/models/DashboardLog");
 } catch {
   // opcional
 }
@@ -31,7 +31,9 @@ function resolveMaintenanceConfig(config) {
     infractionDays: Number(maintCfg.pruneInfractionsOlderThanDays ?? 180),
     dashboardLogDays: Number(maintCfg.pruneDashboardLogsOlderThanDays ?? 60),
     intervalMs:
-      Number.isFinite(intervalRaw) && intervalRaw >= MIN_INTERVAL_MS ? intervalRaw : DEFAULT_INTERVAL_MS
+      Number.isFinite(intervalRaw) && intervalRaw >= MIN_INTERVAL_MS
+        ? intervalRaw
+        : DEFAULT_INTERVAL_MS,
   };
 }
 
@@ -56,11 +58,11 @@ async function runOnce(config) {
       const res = await Infraction.deleteMany(buildPruneFilter(infCutoff));
       if (res?.deletedCount) {
         console.log(
-          `[Maintenance] Removed ${res.deletedCount} old infractions (older than ${cfg.infractionDays}d).`
+          `[Maintenance] Removed ${res.deletedCount} old infractions (older than ${cfg.infractionDays}d).`,
         );
       }
     } catch (err) {
-      console.error('[Maintenance] Failed to prune infractions:', err);
+      console.error("[Maintenance] Failed to prune infractions:", err);
     }
   }
 
@@ -70,11 +72,11 @@ async function runOnce(config) {
       const res = await DashboardLog.deleteMany(buildPruneFilter(logCutoff));
       if (res?.deletedCount) {
         console.log(
-          `[Maintenance] Removed ${res.deletedCount} old dashboard logs (older than ${cfg.dashboardLogDays}d).`
+          `[Maintenance] Removed ${res.deletedCount} old dashboard logs (older than ${cfg.dashboardLogDays}d).`,
         );
       }
     } catch (err) {
-      console.error('[Maintenance] Failed to prune dashboard logs:', err);
+      console.error("[Maintenance] Failed to prune dashboard logs:", err);
     }
   }
 }
@@ -82,11 +84,13 @@ async function runOnce(config) {
 function startMaintenance(config) {
   const cfg = resolveMaintenanceConfig(config);
   if (!cfg.enabled) {
-    console.log('[Maintenance] Disabled in config.maintenance.enabled');
+    console.log("[Maintenance] Disabled in config.maintenance.enabled");
     return;
   }
 
-  console.log(`[Maintenance] Scheduler running every ${Math.round(cfg.intervalMs / 60000)} minutes.`);
+  console.log(
+    `[Maintenance] Scheduler running every ${Math.round(cfg.intervalMs / 60000)} minutes.`,
+  );
 
   // run once on startup (without blocking)
   runOnce(config).catch(() => null);
@@ -101,5 +105,5 @@ module.exports = {
   runOnce,
   resolveMaintenanceConfig,
   computeCutoff,
-  buildPruneFilter
+  buildPruneFilter,
 };

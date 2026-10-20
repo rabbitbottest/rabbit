@@ -1,7 +1,7 @@
 // src/utils/trust.js
 
-const config = require('../config/defaultConfig');
-const { t } = require('../systems/i18n');
+const config = require("../config/defaultConfig");
+const { t } = require("../systems/i18n");
 
 function getTrustConfig() {
   const cfg = config.trust || {};
@@ -40,47 +40,78 @@ function getTrustConfig() {
       enabled: cfg.adaptive?.enabled === true,
       strictDelta: cfg.adaptive?.strictDelta ?? -1,
       lenientDelta: cfg.adaptive?.lenientDelta ?? 1,
-      minSampleSize: cfg.adaptive?.minSampleSize ?? 5
-    }
+      minSampleSize: cfg.adaptive?.minSampleSize ?? 5,
+    },
   };
 }
 
 function normalizeTrustOverrides(raw) {
-  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
   const ranges = {
-    base: [0, 100], min: [0, 100], max: [0, 100],
-    warnPenalty: [0, 100], mutePenalty: [0, 100],
-    regenPerDay: [0, 50], regenMaxDays: [0, 365],
-    lowThreshold: [0, 100], highThreshold: [0, 100],
-    lowTrustWarningsPenalty: [0, 25], lowTrustMessagesPenalty: [0, 25],
-    highTrustMessagesBonus: [0, 25]
+    base: [0, 100],
+    min: [0, 100],
+    max: [0, 100],
+    warnPenalty: [0, 100],
+    mutePenalty: [0, 100],
+    regenPerDay: [0, 50],
+    regenMaxDays: [0, 365],
+    lowThreshold: [0, 100],
+    highThreshold: [0, 100],
+    lowTrustWarningsPenalty: [0, 25],
+    lowTrustMessagesPenalty: [0, 25],
+    highTrustMessagesBonus: [0, 25],
   };
-  const multipliers = ['lowTrustMuteMultiplier', 'highTrustMuteMultiplier'];
-  const allowed = new Set(['enabled', ...Object.keys(ranges), ...multipliers, 'adaptive']);
+  const multipliers = ["lowTrustMuteMultiplier", "highTrustMuteMultiplier"];
+  const allowed = new Set([
+    "enabled",
+    ...Object.keys(ranges),
+    ...multipliers,
+    "adaptive",
+  ]);
   const out = {};
 
   for (const [key, value] of Object.entries(raw)) {
     if (!allowed.has(key)) return null;
-    if (key === 'enabled') {
-      if (typeof value !== 'boolean') return null;
+    if (key === "enabled") {
+      if (typeof value !== "boolean") return null;
       out.enabled = value;
     } else if (ranges[key]) {
       const [min, max] = ranges[key];
       if (!Number.isInteger(value) || value < min || value > max) return null;
       out[key] = value;
     } else if (multipliers.includes(key)) {
-      if (typeof value !== 'number' || !Number.isFinite(value) || value < 0.1 || value > 10) return null;
+      if (
+        typeof value !== "number" ||
+        !Number.isFinite(value) ||
+        value < 0.1 ||
+        value > 10
+      )
+        return null;
       out[key] = value;
     } else {
-      if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+      if (!value || typeof value !== "object" || Array.isArray(value))
+        return null;
       const adaptive = {};
       for (const [adaptiveKey, adaptiveValue] of Object.entries(value)) {
-        if (adaptiveKey === 'enabled') {
-          if (typeof adaptiveValue !== 'boolean') return null;
-        } else if (adaptiveKey === 'strictDelta' || adaptiveKey === 'lenientDelta') {
-          if (!Number.isInteger(adaptiveValue) || adaptiveValue < -25 || adaptiveValue > 25) return null;
-        } else if (adaptiveKey === 'minSampleSize') {
-          if (!Number.isInteger(adaptiveValue) || adaptiveValue < 1 || adaptiveValue > 500) return null;
+        if (adaptiveKey === "enabled") {
+          if (typeof adaptiveValue !== "boolean") return null;
+        } else if (
+          adaptiveKey === "strictDelta" ||
+          adaptiveKey === "lenientDelta"
+        ) {
+          if (
+            !Number.isInteger(adaptiveValue) ||
+            adaptiveValue < -25 ||
+            adaptiveValue > 25
+          )
+            return null;
+        } else if (adaptiveKey === "minSampleSize") {
+          if (
+            !Number.isInteger(adaptiveValue) ||
+            adaptiveValue < 1 ||
+            adaptiveValue > 500
+          )
+            return null;
         } else return null;
         adaptive[adaptiveKey] = adaptiveValue;
       }
@@ -88,34 +119,58 @@ function normalizeTrustOverrides(raw) {
     }
   }
 
-  if (out.min !== undefined && out.max !== undefined && out.min > out.max) return null;
-  if (out.base !== undefined && ((out.min !== undefined && out.base < out.min) || (out.max !== undefined && out.base > out.max))) return null;
-  if (out.lowThreshold !== undefined && out.highThreshold !== undefined && out.lowThreshold >= out.highThreshold) return null;
+  if (out.min !== undefined && out.max !== undefined && out.min > out.max)
+    return null;
+  if (
+    out.base !== undefined &&
+    ((out.min !== undefined && out.base < out.min) ||
+      (out.max !== undefined && out.base > out.max))
+  )
+    return null;
+  if (
+    out.lowThreshold !== undefined &&
+    out.highThreshold !== undefined &&
+    out.lowThreshold >= out.highThreshold
+  )
+    return null;
   return out;
 }
 
 async function getGuildTrustConfig(guildId) {
   const base = getTrustConfig();
   if (!guildId) return base;
-  const { getGuildConfig } = require('../systems/guildConfigService');
+  const { getGuildConfig } = require("../systems/guildConfigService");
   const configForGuild = await getGuildConfig(String(guildId));
-  const overrides = normalizeTrustOverrides(configForGuild && configForGuild.trustOverrides) || {};
-  const effective = { ...base, ...overrides, adaptive: { ...base.adaptive, ...(overrides.adaptive || {}) } };
+  const overrides =
+    normalizeTrustOverrides(configForGuild && configForGuild.trustOverrides) ||
+    {};
+  const effective = {
+    ...base,
+    ...overrides,
+    adaptive: { ...base.adaptive, ...(overrides.adaptive || {}) },
+  };
   return normalizeTrustOverrides(effective) ? effective : base;
 }
 
 function getTrustLabel(trust, trustCfg, langOverride) {
   const cfg = trustCfg || getTrustConfig();
-  if (!cfg.enabled) return 'N/A';
+  if (!cfg.enabled) return "N/A";
 
   const trustValue = Number.isFinite(trust) ? trust : cfg.base;
 
-  if (trustValue <= cfg.lowThreshold) return t('log.trustRisk.high', langOverride || null);
-  if (trustValue >= cfg.highThreshold) return t('log.trustRisk.low', langOverride || null);
-  return t('log.trustRisk.medium', langOverride || null);
+  if (trustValue <= cfg.lowThreshold)
+    return t("log.trustRisk.high", langOverride || null);
+  if (trustValue >= cfg.highThreshold)
+    return t("log.trustRisk.low", langOverride || null);
+  return t("log.trustRisk.medium", langOverride || null);
 }
 
-function getEffectiveMaxWithPenalty(baseMax, trustCfg, trustValue, options = {}) {
+function getEffectiveMaxWithPenalty(
+  baseMax,
+  trustCfg,
+  trustValue,
+  options = {},
+) {
   const cfg = trustCfg || getTrustConfig();
   if (!cfg.enabled) return baseMax;
 
@@ -136,8 +191,8 @@ function getEffectiveMaxWithPenalty(baseMax, trustCfg, trustValue, options = {})
 
 function getEffectiveMaxWarnings(baseMaxWarnings, trustCfg, trustValue) {
   return getEffectiveMaxWithPenalty(baseMaxWarnings, trustCfg, trustValue, {
-    penaltyKey: 'lowTrustWarningsPenalty',
-    minFloor: 1
+    penaltyKey: "lowTrustWarningsPenalty",
+    minFloor: 1,
   });
 }
 
@@ -204,7 +259,7 @@ function getAdaptiveAutomodAdjustment(trustCfg, stats = {}) {
   const adaptive = cfg.adaptive || {};
 
   if (!cfg.enabled || adaptive.enabled !== true) {
-    return { applied: false, level: 'off', delta: 0 };
+    return { applied: false, level: "off", delta: 0 };
   }
 
   const minSampleSize = Number.isFinite(Number(adaptive.minSampleSize))
@@ -213,23 +268,35 @@ function getAdaptiveAutomodAdjustment(trustCfg, stats = {}) {
 
   // `Number(null)` seria 0 (finito), o que faria uma amostra vazia parecer
   // "Trust médio = 0"; por isso validamos o tipo antes de converter.
-  const avgTrust = typeof stats.avgTrust === 'number' && Number.isFinite(stats.avgTrust)
-    ? stats.avgTrust
-    : NaN;
-  const sampleSize = typeof stats.sampleSize === 'number' && Number.isFinite(stats.sampleSize)
-    ? stats.sampleSize
-    : NaN;
+  const avgTrust =
+    typeof stats.avgTrust === "number" && Number.isFinite(stats.avgTrust)
+      ? stats.avgTrust
+      : NaN;
+  const sampleSize =
+    typeof stats.sampleSize === "number" && Number.isFinite(stats.sampleSize)
+      ? stats.sampleSize
+      : NaN;
 
-  if (!Number.isFinite(avgTrust) || !Number.isFinite(sampleSize) || sampleSize < minSampleSize) {
-    return { applied: false, level: 'insufficient', delta: 0 };
+  if (
+    !Number.isFinite(avgTrust) ||
+    !Number.isFinite(sampleSize) ||
+    sampleSize < minSampleSize
+  ) {
+    return { applied: false, level: "insufficient", delta: 0 };
   }
 
-  const strictDelta = Number.isFinite(Number(adaptive.strictDelta)) ? Number(adaptive.strictDelta) : -1;
-  const lenientDelta = Number.isFinite(Number(adaptive.lenientDelta)) ? Number(adaptive.lenientDelta) : 1;
+  const strictDelta = Number.isFinite(Number(adaptive.strictDelta))
+    ? Number(adaptive.strictDelta)
+    : -1;
+  const lenientDelta = Number.isFinite(Number(adaptive.lenientDelta))
+    ? Number(adaptive.lenientDelta)
+    : 1;
 
-  if (avgTrust <= cfg.lowThreshold) return { applied: true, level: 'strict', delta: strictDelta };
-  if (avgTrust >= cfg.highThreshold) return { applied: true, level: 'lenient', delta: lenientDelta };
-  return { applied: false, level: 'neutral', delta: 0 };
+  if (avgTrust <= cfg.lowThreshold)
+    return { applied: true, level: "strict", delta: strictDelta };
+  if (avgTrust >= cfg.highThreshold)
+    return { applied: true, level: "lenient", delta: lenientDelta };
+  return { applied: false, level: "neutral", delta: 0 };
 }
 
 /**
@@ -240,14 +307,16 @@ function getAdaptiveAutomodAdjustment(trustCfg, stats = {}) {
  * @returns {{ maxWarnings: number, applied: boolean, level: string, delta: number }}
  */
 function getAdaptiveMaxWarnings(baseMaxWarnings, trustCfg, stats) {
-  const base = Number.isFinite(Number(baseMaxWarnings)) ? Number(baseMaxWarnings) : 0;
+  const base = Number.isFinite(Number(baseMaxWarnings))
+    ? Number(baseMaxWarnings)
+    : 0;
   const adj = getAdaptiveAutomodAdjustment(trustCfg, stats);
 
   return {
     maxWarnings: Math.max(1, base + (adj.delta || 0)),
     applied: adj.applied,
     level: adj.level,
-    delta: adj.delta
+    delta: adj.delta,
   };
 }
 
@@ -260,5 +329,5 @@ module.exports = {
   getEffectiveMaxMessages,
   getEffectiveMuteDuration,
   getAdaptiveAutomodAdjustment,
-  getAdaptiveMaxWarnings
+  getAdaptiveMaxWarnings,
 };

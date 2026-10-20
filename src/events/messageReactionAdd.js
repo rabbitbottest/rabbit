@@ -4,17 +4,20 @@ const {
   handleTicketOpen,
   handleTicketClose,
   OPEN_EMOJI,
-  CLOSE_EMOJI
-} = require('../systems/ticketThreads');
+  CLOSE_EMOJI,
+} = require("../systems/ticketThreads");
 
-const { getFeature } = require('../systems/featuresService');
-const { emojiMatches } = require('../systems/reactionRoles');
+const { getFeature } = require("../systems/featuresService");
+const { emojiMatches } = require("../systems/reactionRoles");
 
 let starboard = null;
 try {
-  starboard = require('../systems/starboard');
+  starboard = require("../systems/starboard");
 } catch (err) {
-  console.warn('[messageReactionAdd] starboard system not available:', err?.message || err);
+  console.warn(
+    "[messageReactionAdd] starboard system not available:",
+    err?.message || err,
+  );
 }
 
 /**
@@ -27,7 +30,7 @@ async function handleReactionRoles(reaction, user) {
   const guild = message?.guild;
   if (!guild || !user) return;
 
-  const cfg = await getFeature(guild.id, 'reactionRoles');
+  const cfg = await getFeature(guild.id, "reactionRoles");
   if (cfg?.enabled !== true) return;
 
   const matchesMessage = cfg.messageId && message.id === cfg.messageId;
@@ -46,15 +49,15 @@ async function handleReactionRoles(reaction, user) {
         message.guild.members.cache.get(user.id) ||
         (await message.guild.members.fetch(user.id).catch(() => null));
       if (!member) continue;
-      await member.roles.add(entry.roleId, 'Reaction role');
+      await member.roles.add(entry.roleId, "Reaction role");
     } catch (err) {
-      console.error('[messageReactionAdd] Failed to add reaction role:', err);
+      console.error("[messageReactionAdd] Failed to add reaction role:", err);
     }
   }
 }
 
 module.exports = (client) => {
-  client.on('messageReactionAdd', async (reaction, user) => {
+  client.on("messageReactionAdd", async (reaction, user) => {
     try {
       if (!reaction || !reaction.message) return;
       if (user && user.bot) return;
@@ -63,7 +66,10 @@ module.exports = (client) => {
         try {
           await reaction.fetch();
         } catch (err) {
-          console.warn('[messageReactionAdd] Failed to fetch partial reaction:', err);
+          console.warn(
+            "[messageReactionAdd] Failed to fetch partial reaction:",
+            err,
+          );
           return;
         }
       }
@@ -72,7 +78,10 @@ module.exports = (client) => {
         try {
           await reaction.message.fetch();
         } catch (err) {
-          console.warn('[messageReactionAdd] Failed to fetch partial message:', err);
+          console.warn(
+            "[messageReactionAdd] Failed to fetch partial message:",
+            err,
+          );
           return;
         }
       }
@@ -80,13 +89,23 @@ module.exports = (client) => {
       const emojiName = reaction.emoji.name || reaction.emoji.id;
       if (!emojiName) return;
       const ticketCfg = reaction.message.guild
-        ? await getFeature(reaction.message.guild.id, 'tickets').catch(() => null)
+        ? await getFeature(reaction.message.guild.id, "tickets").catch(
+            () => null,
+          )
         : null;
 
       // Abrir ticket: reação no canal configurado com o emoji de abertura
-      if (ticketCfg && ticketCfg.enabled === true && emojiMatches(ticketCfg.openEmoji || OPEN_EMOJI, reaction.emoji)) {
-        const matchesMessage = ticketCfg.messageId && reaction.message.id === ticketCfg.messageId;
-        const matchesLegacyChannel = !ticketCfg.messageId && ticketCfg.channelId && reaction.message.channelId === ticketCfg.channelId;
+      if (
+        ticketCfg &&
+        ticketCfg.enabled === true &&
+        emojiMatches(ticketCfg.openEmoji || OPEN_EMOJI, reaction.emoji)
+      ) {
+        const matchesMessage =
+          ticketCfg.messageId && reaction.message.id === ticketCfg.messageId;
+        const matchesLegacyChannel =
+          !ticketCfg.messageId &&
+          ticketCfg.channelId &&
+          reaction.message.channelId === ticketCfg.channelId;
         if (matchesMessage || matchesLegacyChannel) {
           const opened = await handleTicketOpen(reaction, user);
 
@@ -96,7 +115,10 @@ module.exports = (client) => {
             try {
               await reaction.users.remove(user.id);
             } catch (err) {
-              console.error('[messageReactionAdd] Failed to remove user reaction after creating ticket:', err);
+              console.error(
+                "[messageReactionAdd] Failed to remove user reaction after creating ticket:",
+                err,
+              );
             }
           }
           return;
@@ -104,7 +126,11 @@ module.exports = (client) => {
       }
 
       // Fechar ticket: reação dentro da thread no emoji de fecho
-      if ((!ticketCfg && emojiName === CLOSE_EMOJI) || (ticketCfg && emojiMatches(ticketCfg.closeEmoji || CLOSE_EMOJI, reaction.emoji))) {
+      if (
+        (!ticketCfg && emojiName === CLOSE_EMOJI) ||
+        (ticketCfg &&
+          emojiMatches(ticketCfg.closeEmoji || CLOSE_EMOJI, reaction.emoji))
+      ) {
         const closed = await handleTicketClose(reaction, user);
         if (closed) return;
       }
@@ -113,19 +139,19 @@ module.exports = (client) => {
       try {
         await handleReactionRoles(reaction, user);
       } catch (err) {
-        console.error('[messageReactionAdd] reaction roles error:', err);
+        console.error("[messageReactionAdd] reaction roles error:", err);
       }
 
       // Starboard (feature opcional)
-      if (starboard && typeof starboard.handleReactionAdd === 'function') {
+      if (starboard && typeof starboard.handleReactionAdd === "function") {
         try {
           await starboard.handleReactionAdd(reaction, user);
         } catch (err) {
-          console.error('[messageReactionAdd] starboard error:', err);
+          console.error("[messageReactionAdd] starboard error:", err);
         }
       }
     } catch (err) {
-      console.error('[messageReactionAdd] Error:', err);
+      console.error("[messageReactionAdd] Error:", err);
     }
   });
 };

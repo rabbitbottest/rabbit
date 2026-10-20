@@ -1,6 +1,6 @@
 // src/database/models/Ticket.js
 
-const { Schema, model } = require('mongoose');
+const { Schema, model } = require("mongoose");
 
 const ticketSchema = new Schema(
   {
@@ -12,7 +12,12 @@ const ticketSchema = new Schema(
     userId: { type: String, required: true, index: true },
     username: { type: String, default: null },
 
-    status: { type: String, enum: ['open', 'closed'], default: 'open', index: true },
+    status: {
+      type: String,
+      enum: ["open", "closed"],
+      default: "open",
+      index: true,
+    },
 
     subject: { type: String, default: null },
     createdAt: { type: Date, default: Date.now, index: true },
@@ -23,16 +28,19 @@ const ticketSchema = new Schema(
     lastMessageAt: { type: Date, default: null },
     lastResponderId: { type: String, default: null },
     lastResponderName: { type: String, default: null },
-    lastResponderAt: { type: Date, default: null }
+    lastResponderAt: { type: Date, default: null },
   },
   {
-    timestamps: false
-  }
+    timestamps: false,
+  },
 );
 
 ticketSchema.index({ guildId: 1, ticketNumber: 1 }, { unique: true });
 ticketSchema.index({ guildId: 1, channelId: 1 }, { unique: true });
 ticketSchema.index({ guildId: 1, status: 1, createdAt: -1 });
-ticketSchema.index({ guildId: 1, userId: 1, status: 1 }, { unique: true, partialFilterExpression: { status: 'open' } });
+ticketSchema.index(
+  { guildId: 1, userId: 1, status: 1 },
+  { unique: true, partialFilterExpression: { status: "open" } },
+);
 
-module.exports = model('Ticket', ticketSchema);
+module.exports = model("Ticket", ticketSchema);

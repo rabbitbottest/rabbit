@@ -2,45 +2,48 @@
 //
 // Central handler for all slash commands.
 
-const config = require('../config/defaultConfig');
-const { t, tGuild, tContext } = require('../systems/i18n');
-const logger = require('../systems/logger');
-const { getGuildConfig } = require('../systems/guildConfigService');
-const { isStaff } = require('../utils/staff');
-const { safeReply } = require('../utils/discord');
+const config = require("../config/defaultConfig");
+const { tGuild, tContext } = require("../systems/i18n");
+const logger = require("../systems/logger");
+const { getGuildConfig } = require("../systems/guildConfigService");
+const { isStaff } = require("../utils/staff");
+const { safeReply } = require("../utils/discord");
 
-const warnSlash = require('../slash/warn');
-const muteSlash = require('../slash/mute');
-const unmuteSlash = require('../slash/unmute');
-const clearSlash = require('../slash/clear');
-const userinfoSlash = require('../slash/userinfo');
-const historySlash = require('../slash/history');
-const helpSlash = require('../slash/help');
-const pollSlash = require('../slash/poll');
-const rankSlash = require('../slash/rank');
-const leaderboardSlash = require('../slash/leaderboard');
+const warnSlash = require("../slash/warn");
+const muteSlash = require("../slash/mute");
+const unmuteSlash = require("../slash/unmute");
+const clearSlash = require("../slash/clear");
+const userinfoSlash = require("../slash/userinfo");
+const historySlash = require("../slash/history");
+const helpSlash = require("../slash/help");
+const pollSlash = require("../slash/poll");
+const rankSlash = require("../slash/rank");
+const leaderboardSlash = require("../slash/leaderboard");
 
-const { getFeature } = require('../systems/featuresService');
+const { getFeature } = require("../systems/featuresService");
 
 let Poll = null;
 try {
-  Poll = require('../database/models/Poll');
+  Poll = require("../database/models/Poll");
 } catch (err) {
-  console.warn('[interactionCreate] Poll model not available:', err?.message || err);
+  console.warn(
+    "[interactionCreate] Poll model not available:",
+    err?.message || err,
+  );
 }
 
 // Simple command registry instead of a long if/else chain
 const commandHandlers = new Map([
-  ['warn', warnSlash],
-  ['mute', muteSlash],
-  ['unmute', unmuteSlash],
-  ['clear', clearSlash],
-  ['userinfo', userinfoSlash],
-  ['history', historySlash],
-  ['help', helpSlash],
-  ['poll', pollSlash],
-  ['rank', rankSlash],
-  ['leaderboard', leaderboardSlash],
+  ["warn", warnSlash],
+  ["mute", muteSlash],
+  ["unmute", unmuteSlash],
+  ["clear", clearSlash],
+  ["userinfo", userinfoSlash],
+  ["history", historySlash],
+  ["help", helpSlash],
+  ["poll", pollSlash],
+  ["rank", rankSlash],
+  ["leaderboard", leaderboardSlash],
 ]);
 
 // Botão de verificação: "verify:<roleId>"
@@ -48,30 +51,57 @@ async function handleVerifyButton(interaction, roleId) {
   try {
     if (!interaction.guild || !roleId) return;
 
-    const cfg = await getFeature(interaction.guild.id, 'verification');
+    const cfg = await getFeature(interaction.guild.id, "verification");
     if (cfg?.enabled !== true) {
-      return safeReply(interaction, { content: await tGuild(interaction.guild.id, 'verify.disabled') }, { ephemeral: true });
+      return safeReply(
+        interaction,
+        { content: await tGuild(interaction.guild.id, "verify.disabled") },
+        { ephemeral: true },
+      );
     }
 
     const member =
       interaction.member ||
-      (await interaction.guild.members.fetch(interaction.user.id).catch(() => null));
+      (await interaction.guild.members
+        .fetch(interaction.user.id)
+        .catch(() => null));
     if (!member) {
-      return safeReply(interaction, { content: await tGuild(interaction.guild.id, 'common.cannotResolveUser') }, { ephemeral: true });
+      return safeReply(
+        interaction,
+        {
+          content: await tGuild(
+            interaction.guild.id,
+            "common.cannotResolveUser",
+          ),
+        },
+        { ephemeral: true },
+      );
     }
 
     const role =
       interaction.guild.roles.cache.get(roleId) ||
       (await interaction.guild.roles.fetch(roleId).catch(() => null));
     if (!role) {
-      return safeReply(interaction, { content: await tGuild(interaction.guild.id, 'verify.disabled') }, { ephemeral: true });
+      return safeReply(
+        interaction,
+        { content: await tGuild(interaction.guild.id, "verify.disabled") },
+        { ephemeral: true },
+      );
     }
 
-    await member.roles.add(role, 'Verificação').catch(() => null);
-    return safeReply(interaction, { content: await tGuild(interaction.guild.id, 'verify.success') }, { ephemeral: true });
+    await member.roles.add(role, "Verificação").catch(() => null);
+    return safeReply(
+      interaction,
+      { content: await tGuild(interaction.guild.id, "verify.success") },
+      { ephemeral: true },
+    );
   } catch (err) {
-    console.error('[interactionCreate] verify button error:', err);
-    return safeReply(interaction, { content: await tGuild(interaction.guild.id, 'common.unexpectedError') }, { ephemeral: true });
+    console.error("[interactionCreate] verify button error:", err);
+    return safeReply(
+      interaction,
+      { content: await tGuild(interaction.guild.id, "common.unexpectedError") },
+      { ephemeral: true },
+    );
   }
 }
 
@@ -79,26 +109,35 @@ async function handleVerifyButton(interaction, roleId) {
 async function handlePollButton(interaction, customId) {
   try {
     if (!Poll) {
-      return safeReply(interaction, { content: await tContext(interaction, 'common.unexpectedError') }, { ephemeral: true });
+      return safeReply(
+        interaction,
+        { content: await tContext(interaction, "common.unexpectedError") },
+        { ephemeral: true },
+      );
     }
 
-    const parts = String(customId).split(':');
+    const parts = String(customId).split(":");
     const pollId = parts[1];
     const index = parseInt(parts[2], 10);
     if (!pollId || !Number.isFinite(index)) return;
 
     const poll = await Poll.findById(pollId).catch(() => null);
     if (!poll || poll.closed) {
-      return safeReply(interaction, { content: await tContext(interaction, 'poll.disabled') }, { ephemeral: true });
+      return safeReply(
+        interaction,
+        { content: await tContext(interaction, "poll.disabled") },
+        { ephemeral: true },
+      );
     }
 
     const optionCount = Array.isArray(poll.options) ? poll.options.length : 0;
     if (index < 0 || index >= optionCount) return;
 
     const userId = interaction.user.id;
-    const counts = Array.isArray(poll.counts) && poll.counts.length === optionCount
-      ? poll.counts.map((n) => Number(n) || 0)
-      : new Array(optionCount).fill(0);
+    const counts =
+      Array.isArray(poll.counts) && poll.counts.length === optionCount
+        ? poll.counts.map((n) => Number(n) || 0)
+        : new Array(optionCount).fill(0);
 
     const prev = poll.votes ? poll.votes.get(userId) : undefined;
 
@@ -122,40 +161,50 @@ async function handlePollButton(interaction, customId) {
       if (interaction.guild && poll.channelId) {
         const channel =
           interaction.guild.channels.cache.get(poll.channelId) ||
-          (await interaction.guild.channels.fetch(poll.channelId).catch(() => null));
+          (await interaction.guild.channels
+            .fetch(poll.channelId)
+            .catch(() => null));
         const msg =
           channel && poll.messageId
             ? await channel.messages.fetch(poll.messageId).catch(() => null)
             : null;
-        if (msg && typeof pollSlash.buildPollMessage === 'function') {
+        if (msg && typeof pollSlash.buildPollMessage === "function") {
           await msg.edit(pollSlash.buildPollMessage(poll)).catch(() => null);
         }
       }
     } catch (err) {
-      console.error('[interactionCreate] Failed to refresh poll message:', err);
+      console.error("[interactionCreate] Failed to refresh poll message:", err);
     }
 
-    return safeReply(interaction, { content: await tContext(interaction, 'poll.voted') }, { ephemeral: true });
+    return safeReply(
+      interaction,
+      { content: await tContext(interaction, "poll.voted") },
+      { ephemeral: true },
+    );
   } catch (err) {
-    console.error('[interactionCreate] poll button error:', err);
-    return safeReply(interaction, { content: await tContext(interaction, 'common.unexpectedError') }, { ephemeral: true });
+    console.error("[interactionCreate] poll button error:", err);
+    return safeReply(
+      interaction,
+      { content: await tContext(interaction, "common.unexpectedError") },
+      { ephemeral: true },
+    );
   }
 }
 
 // Tratamento de botões (verificação / polls) antes dos slash commands.
 async function handleButton(interaction) {
-  const id = String(interaction.customId || '');
-  if (id.startsWith('verify:')) {
-    return handleVerifyButton(interaction, id.slice('verify:'.length));
+  const id = String(interaction.customId || "");
+  if (id.startsWith("verify:")) {
+    return handleVerifyButton(interaction, id.slice("verify:".length));
   }
-  if (id.startsWith('poll:')) {
+  if (id.startsWith("poll:")) {
     return handlePollButton(interaction, id);
   }
   return null;
 }
 
 module.exports = (client) => {
-  client.on('interactionCreate', async (interaction) => {
+  client.on("interactionCreate", async (interaction) => {
     try {
       // Botões (verificação / polls) são componentes independentes dos slash commands.
       if (interaction?.isButton?.()) {
@@ -172,20 +221,28 @@ module.exports = (client) => {
         const guildId = interaction.guildId;
         if (guildId) {
           const guildCfg = await getGuildConfig(guildId);
-          const mm = guildCfg && guildCfg.maintenanceMode ? guildCfg.maintenanceMode : null;
+          const mm =
+            guildCfg && guildCfg.maintenanceMode
+              ? guildCfg.maintenanceMode
+              : null;
           if (mm && mm.enabled === true) {
             const allowStaff = mm.allowStaff !== false;
             const ok = allowStaff ? await isStaff(interaction.member) : false;
             if (!ok) {
-              const msg = (typeof mm.message === 'string' && mm.message.trim())
-                ? mm.message.trim()
-                : 'O bot está em modo de manutenção. Tenta novamente mais tarde.';
-              await safeReply(interaction, { content: msg }, { ephemeral: true });
+              const msg =
+                typeof mm.message === "string" && mm.message.trim()
+                  ? mm.message.trim()
+                  : "O bot está em modo de manutenção. Tenta novamente mais tarde.";
+              await safeReply(
+                interaction,
+                { content: msg },
+                { ephemeral: true },
+              );
               return;
             }
           }
         }
-      } catch (mmErr) {
+      } catch {
         // If anything fails, do not block the command.
       }
 
@@ -193,15 +250,16 @@ module.exports = (client) => {
       try {
         const user = interaction.user;
         const guild = interaction.guild;
-        const rawOptions = (interaction.options && interaction.options.data) || [];
+        const rawOptions =
+          (interaction.options && interaction.options.data) || [];
         const optStr = rawOptions
           .map((opt) => {
             const v = opt.value;
-            return `${opt.name}=${typeof v === 'string' ? v : (v ?? '')}`;
+            return `${opt.name}=${typeof v === "string" ? v : (v ?? "")}`;
           })
-          .join(', ');
+          .join(", ");
 
-        const desc = optStr ? `Options: ${optStr}` : '';
+        const desc = optStr ? `Options: ${optStr}` : "";
 
         logger(
           client,
@@ -209,10 +267,13 @@ module.exports = (client) => {
           user,
           client.user,
           desc,
-          guild
+          guild,
         );
       } catch (logErr) {
-        console.warn('[interactionCreate] Failed to log slash command:', logErr);
+        console.warn(
+          "[interactionCreate] Failed to log slash command:",
+          logErr,
+        );
       }
 
       const handler = commandHandlers.get(name);
@@ -220,12 +281,12 @@ module.exports = (client) => {
 
       return handler(client, interaction);
     } catch (err) {
-      console.error('[interactionCreate] Error:', err);
+      console.error("[interactionCreate] Error:", err);
       try {
         await safeReply(
           interaction,
-          { content: await tContext(interaction, 'common.unexpectedError') },
-          { ephemeral: true }
+          { content: await tContext(interaction, "common.unexpectedError") },
+          { ephemeral: true },
         );
       } catch {
         // ignore

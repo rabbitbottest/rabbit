@@ -1,15 +1,19 @@
 // src/slash/warn.js
 
-const config = require('../config/defaultConfig');
-const logger = require('../systems/logger');
-const warningsService = require('../systems/warningsService');
-const infractionsService = require('../systems/infractionsService');
-const { handleInfractionAutomation } = require('../systems/automation');
-const { tContext } = require('../systems/i18n');
-const { isStaff } = require('./utils');
-const { replyEphemeral, safeReply } = require('../utils/discord');
-const { ensureWarnPermissions } = require('../utils/modPermissions');
-const { getGuildTrustConfig, getEffectiveMaxWarnings, getEffectiveMuteDuration } = require('../utils/trust');
+const config = require("../config/defaultConfig");
+const logger = require("../systems/logger");
+const warningsService = require("../systems/warningsService");
+const infractionsService = require("../systems/infractionsService");
+const { handleInfractionAutomation } = require("../systems/automation");
+const { tContext } = require("../systems/i18n");
+const { isStaff } = require("./utils");
+const { replyEphemeral, safeReply } = require("../utils/discord");
+const { ensureWarnPermissions } = require("../utils/modPermissions");
+const {
+  getGuildTrustConfig,
+  getEffectiveMaxWarnings,
+  getEffectiveMuteDuration,
+} = require("../utils/trust");
 
 module.exports = async function warnSlash(client, interaction) {
   try {
@@ -20,18 +24,27 @@ module.exports = async function warnSlash(client, interaction) {
     const botMember = guild.members.me;
 
     if (!executor || !botMember) {
-      return replyEphemeral(interaction, await tContext(interaction, 'common.unexpectedError'));
+      return replyEphemeral(
+        interaction,
+        await tContext(interaction, "common.unexpectedError"),
+      );
     }
 
-    const staff = await isStaff(executor, 'moderation').catch(() => false);
+    const staff = await isStaff(executor, "moderation").catch(() => false);
     if (!staff) {
-      return replyEphemeral(interaction, await tContext(interaction, 'common.noPermission'));
+      return replyEphemeral(
+        interaction,
+        await tContext(interaction, "common.noPermission"),
+      );
     }
 
-    const targetUser = interaction.options.getUser('user', true);
+    const targetUser = interaction.options.getUser("user", true);
     const target = await guild.members.fetch(targetUser.id).catch(() => null);
     if (!target) {
-      return replyEphemeral(interaction, await tContext(interaction, 'common.cannotResolveUser'));
+      return replyEphemeral(
+        interaction,
+        await tContext(interaction, "common.cannotResolveUser"),
+      );
     }
 
     const canProceed = await ensureWarnPermissions({
@@ -39,28 +52,31 @@ module.exports = async function warnSlash(client, interaction) {
       interaction,
       executor,
       target,
-      botMember
+      botMember,
     });
     if (!canProceed) return;
 
-    const rawReason = (interaction.options.getString('reason') || '').trim();
-    const reason = rawReason || await tContext(interaction, 'common.noReason');
+    const rawReason = (interaction.options.getString("reason") || "").trim();
+    const reason =
+      rawReason || (await tContext(interaction, "common.noReason"));
 
     // Add warning and update trust/user state
     const dbUser = await warningsService.addWarning(guild.id, target.id, 1);
 
     const baseMaxWarnings =
-      typeof config.maxWarnings === 'number' ? config.maxWarnings : 3;
+      typeof config.maxWarnings === "number" ? config.maxWarnings : 3;
 
     const trustCfg = await getGuildTrustConfig(guild.id);
     const trustValue = Number.isFinite(dbUser?.trust)
       ? dbUser.trust
-      : (typeof trustCfg.base === 'number' ? trustCfg.base : 0);
+      : typeof trustCfg.base === "number"
+        ? trustCfg.base
+        : 0;
 
     const effectiveMaxWarnings = getEffectiveMaxWarnings(
       baseMaxWarnings,
       trustCfg,
-      trustValue
+      trustValue,
     );
 
     // Create WARN infraction
@@ -70,10 +86,10 @@ module.exports = async function warnSlash(client, interaction) {
         guild,
         user: target.user,
         moderator: interaction.user,
-        type: 'WARN',
+        type: "WARN",
         reason,
         duration: null,
-        source: 'slash'
+        source: "slash",
       });
     } catch {
       // ignore
@@ -86,49 +102,52 @@ module.exports = async function warnSlash(client, interaction) {
         guild,
         user: target.user,
         moderator: interaction.user,
-        type: 'WARN'
+        type: "WARN",
       });
     } catch {
       // ignore
     }
 
-    const casePrefix = warnInf?.caseId ? `Case: **#${warnInf.caseId}**\n` : '';
+    const casePrefix = warnInf?.caseId ? `Case: **#${warnInf.caseId}**\n` : "";
 
     // Resposta pública no canal
     await interaction
       .reply({
         content:
           casePrefix +
-          await tContext(interaction, 'warn.channelConfirm', {
+          (await tContext(interaction, "warn.channelConfirm", {
             userMention: `${target}`,
             warnings: dbUser.warnings,
             maxWarnings: effectiveMaxWarnings,
-            reason
-          })
+            reason,
+          })),
       })
       .catch(() => null);
 
     // Escalonamento automático: mute se atingir o limite efetivo
     if (dbUser.warnings >= effectiveMaxWarnings && target.moderatable) {
       const baseMute =
-        typeof config.muteDuration === 'number'
+        typeof config.muteDuration === "number"
           ? config.muteDuration
           : 10 * 60 * 1000;
 
       const effectiveMute = getEffectiveMuteDuration(
         baseMute,
         trustCfg,
-        trustValue
+        trustValue,
       );
 
-      const automodMuteReason = await tContext(interaction, 'automod.muteReason');
+      const automodMuteReason = await tContext(
+        interaction,
+        "automod.muteReason",
+      );
       await target.timeout(effectiveMute, automodMuteReason).catch(() => null);
 
       let afterMuteUser = dbUser;
       try {
         afterMuteUser = await warningsService.applyMutePenalty(
           guild.id,
-          target.id
+          target.id,
         );
       } catch {
         // ignore
@@ -144,10 +163,10 @@ module.exports = async function warnSlash(client, interaction) {
           guild,
           user: target.user,
           moderator: interaction.user,
-          type: 'MUTE',
+          type: "MUTE",
           reason: automodMuteReason,
           duration: effectiveMute,
-          source: 'slash-escalation'
+          source: "slash-escalation",
         });
       } catch {
         // ignore
@@ -157,30 +176,30 @@ module.exports = async function warnSlash(client, interaction) {
 
       await interaction
         .followUp({
-          content: await tContext(interaction, 'automod.mutePublic', {
+          content: await tContext(interaction, "automod.mutePublic", {
             userMention: `${target}`,
-            minutes: mins
-          })
+            minutes: mins,
+          }),
         })
         .catch(() => null);
 
       const muteCasePrefix = muteInf?.caseId
         ? `Case: **#${muteInf.caseId}**\n`
-        : '';
+        : "";
 
       await logger(
         client,
-        'Slash Mute (Escalation)',
+        "Slash Mute (Escalation)",
         target.user,
         interaction.user,
         muteCasePrefix +
-          await tContext(interaction, 'log.actions.automodMute', {
+          (await tContext(interaction, "log.actions.automodMute", {
             minutes: mins,
             trustAfter: trustCfg.enabled
               ? `${trustAfterMute}/${trustCfg.max}`
-              : 'N/A'
-          }),
-        guild
+              : "N/A",
+          })),
+        guild,
       );
     }
 
@@ -188,26 +207,26 @@ module.exports = async function warnSlash(client, interaction) {
     try {
       await logger(
         client,
-        'Slash Warn',
+        "Slash Warn",
         target.user,
         interaction.user,
-        await tContext(interaction, 'log.actions.manualWarn', {
+        await tContext(interaction, "log.actions.manualWarn", {
           reason,
           warnings: dbUser.warnings,
           maxWarnings: effectiveMaxWarnings,
-          trust: dbUser.trust ?? 'N/A'
+          trust: dbUser.trust ?? "N/A",
         }),
-        guild
+        guild,
       );
     } catch {
       // ignore
     }
   } catch (err) {
-    console.error('[slash/warn] Error:', err);
+    console.error("[slash/warn] Error:", err);
     return safeReply(
       interaction,
-      { content: await tContext(interaction, 'common.unexpectedError') },
-      { ephemeral: true }
+      { content: await tContext(interaction, "common.unexpectedError") },
+      { ephemeral: true },
     );
   }
 };

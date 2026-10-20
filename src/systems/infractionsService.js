@@ -1,12 +1,12 @@
 // src/systems/infractionsService.js
 
-const Infraction = require('../database/models/Infraction');
-const { incrementInfractions } = require('./status');
-const { escapeRegex } = require('../utils/regex');
+const Infraction = require("../database/models/Infraction");
+const { incrementInfractions } = require("./status");
+const { escapeRegex } = require("../utils/regex");
 let CaseCounter = null;
 
 try {
-  CaseCounter = require('../database/models/CaseCounter');
+  CaseCounter = require("../database/models/CaseCounter");
 } catch {
   // optional
 }
@@ -18,7 +18,7 @@ async function allocateCaseId(guildId) {
   const doc = await CaseCounter.findOneAndUpdate(
     { guildId },
     { $inc: { nextCaseId: 1 } },
-    { returnDocument: 'after', upsert: true, setDefaultsOnInsert: true }
+    { returnDocument: "after", upsert: true, setDefaultsOnInsert: true },
   ).lean();
 
   // doc.nextCaseId is the value AFTER increment. Our allocated caseId is (nextCaseId - 1).
@@ -39,7 +39,15 @@ async function allocateCaseId(guildId) {
  * @param {number} [options.duration]     - em ms (para mutes)
  * @param {string} [options.source]       - origem (command, slash, automod, antispam, dashboard, system...)
  */
-async function create({ guild, user, moderator, type, reason, duration = null, source }) {
+async function create({
+  guild,
+  user,
+  moderator,
+  type,
+  reason,
+  duration = null,
+  source,
+}) {
   if (!guild?.id) return null;
   if (!user?.id) return null;
   if (!moderator?.id) return null;
@@ -56,11 +64,11 @@ async function create({ guild, user, moderator, type, reason, duration = null, s
     userId: user.id,
     moderatorId: moderator.id,
     type,
-    reason: reason || 'No reason provided',
+    reason: reason || "No reason provided",
     duration: duration ?? null,
-    source: source || 'unknown',
+    source: source || "unknown",
     userTag,
-    executorTag
+    executorTag,
   };
 
   // Only persist caseId when we successfully allocated one.
@@ -99,7 +107,7 @@ async function countInfractionsByType(guildId, userId) {
 
   const rows = await Infraction.aggregate([
     { $match: { guildId, userId } },
-    { $group: { _id: '$type', count: { $sum: 1 } } }
+    { $group: { _id: "$type", count: { $sum: 1 } } },
   ]);
 
   const out = {};
@@ -116,7 +124,15 @@ async function getCase(guildId, caseId) {
   return Infraction.findOne({ guildId, caseId: n }).lean();
 }
 
-async function searchCases({ guildId, q = '', userId = '', type = '', source = '', page = 1, limit = 25 }) {
+async function searchCases({
+  guildId,
+  q = "",
+  userId = "",
+  type = "",
+  source = "",
+  page = 1,
+  limit = 25,
+}) {
   if (!guildId) return { total: 0, items: [] };
 
   const p = Math.max(parseInt(String(page), 10) || 1, 1);
@@ -125,20 +141,20 @@ async function searchCases({ guildId, q = '', userId = '', type = '', source = '
   const query = { guildId };
 
   if (userId) query.userId = String(userId).trim();
-  if (type) query.type = { $regex: String(type).trim(), $options: 'i' };
-  if (source) query.source = { $regex: String(source).trim(), $options: 'i' };
+  if (type) query.type = { $regex: String(type).trim(), $options: "i" };
+  if (source) query.source = { $regex: String(source).trim(), $options: "i" };
 
-  const text = String(q || '').trim();
+  const text = String(q || "").trim();
   if (text) {
     const maybeCase = parseInt(text, 10);
     if (Number.isFinite(maybeCase) && maybeCase > 0) {
       query.caseId = maybeCase;
     } else {
       query.$or = [
-        { reason: { $regex: escapeRegex(text), $options: 'i' } },
-        { type: { $regex: text, $options: 'i' } },
-        { userId: { $regex: text, $options: 'i' } },
-        { moderatorId: { $regex: text, $options: 'i' } }
+        { reason: { $regex: escapeRegex(text), $options: "i" } },
+        { type: { $regex: text, $options: "i" } },
+        { userId: { $regex: text, $options: "i" } },
+        { moderatorId: { $regex: text, $options: "i" } },
       ];
     }
   }
@@ -153,7 +169,6 @@ async function searchCases({ guildId, q = '', userId = '', type = '', source = '
   return { total, items };
 }
 
-
 async function clearCasesForGuild(guildId) {
   if (!guildId) return { deleted: 0 };
   const res = await Infraction.deleteMany({ guildId });
@@ -166,5 +181,5 @@ module.exports = {
   countInfractionsByType,
   getCase,
   searchCases,
-  clearCasesForGuild
+  clearCasesForGuild,
 };

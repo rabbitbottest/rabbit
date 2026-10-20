@@ -9,10 +9,10 @@
 // - Os `resolve*` devolvem o valor em cache de imediato (síncrono) ou uma Promise
 //   quando é preciso ir ao REST. Os consumidores devem usar `await`.
 
-const { fetchChannel, fetchMember } = require('./discordFetchCache');
+const { fetchChannel, fetchMember } = require("./discordFetchCache");
 
 function normalizeId(value) {
-  if (value == null) return '';
+  if (value == null) return "";
   return String(value).trim();
 }
 
@@ -65,13 +65,13 @@ function getCachedUser(client, userId) {
 /** Formata um utilizador como tag legível ("nome" ou "nome#0000"). */
 function formatUserTag(user) {
   if (!user) return null;
-  if (typeof user.tag === 'string' && user.tag) return user.tag;
+  if (typeof user.tag === "string" && user.tag) return user.tag;
 
-  const name = typeof user.username === 'string' ? user.username : null;
+  const name = typeof user.username === "string" ? user.username : null;
   if (!name) return null;
 
   const disc = user.discriminator;
-  return (disc && String(disc) !== '0') ? `${name}#${disc}` : name;
+  return disc && String(disc) !== "0" ? `${name}#${disc}` : name;
 }
 
 /**
@@ -107,7 +107,7 @@ function resolveUser(client, userId, { fetch = true } = {}) {
   if (cached || !fetch) return cached;
 
   const id = normalizeId(userId);
-  if (!client || !id || typeof client.users?.fetch !== 'function') return null;
+  if (!client || !id || typeof client.users?.fetch !== "function") return null;
   return client.users.fetch(id).catch(() => null);
 }
 
@@ -120,5 +120,5 @@ module.exports = {
   formatUserTag,
   resolveChannel,
   resolveMember,
-  resolveUser
+  resolveUser,
 };

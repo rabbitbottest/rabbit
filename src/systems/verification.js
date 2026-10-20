@@ -3,7 +3,7 @@
 // Verificação (feature opcional): um sweep periódico expulsa membros que não
 // adquiriram o cargo de verificação dentro do tempo configurado.
 
-const { getFeatures } = require('./featuresService');
+const { getFeatures } = require("./featuresService");
 
 let sweepInterval = null;
 
@@ -30,13 +30,15 @@ async function sweepGuild(guild) {
         const joinedAt = member.joinedAt ? member.joinedAt.getTime() : null;
         if (!joinedAt || joinedAt > cutoff) continue;
 
-        await guild.members.kick(member.id, 'Verificação não concluída').catch(() => null);
+        await guild.members
+          .kick(member.id, "Verificação não concluída")
+          .catch(() => null);
       } catch (err) {
-        console.error('[verification] Failed to process member:', err);
+        console.error("[verification] Failed to process member:", err);
       }
     }
   } catch (err) {
-    console.error('[verification] Guild sweep error:', err);
+    console.error("[verification] Guild sweep error:", err);
   }
 }
 
@@ -47,7 +49,7 @@ async function sweepAll(client) {
       await sweepGuild(guild);
     }
   } catch (err) {
-    console.error('[verification] sweep error:', err);
+    console.error("[verification] sweep error:", err);
   }
 }
 
@@ -56,7 +58,7 @@ function startVerificationSweep(client) {
   sweepInterval = setInterval(() => {
     sweepAll(client).catch(() => null);
   }, 60 * 1000);
-  if (typeof sweepInterval.unref === 'function') sweepInterval.unref();
+  if (typeof sweepInterval.unref === "function") sweepInterval.unref();
   return sweepInterval;
 }
 
@@ -69,5 +71,5 @@ function stopVerificationSweep() {
 
 module.exports = {
   startVerificationSweep,
-  stopVerificationSweep
+  stopVerificationSweep,
 };

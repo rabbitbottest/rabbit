@@ -2,14 +2,17 @@
 //
 // Remove cargos por reação e atualiza o starboard quando uma reação é retirada.
 
-const { getFeature } = require('../systems/featuresService');
-const { emojiMatches } = require('../systems/reactionRoles');
+const { getFeature } = require("../systems/featuresService");
+const { emojiMatches } = require("../systems/reactionRoles");
 
 let starboard = null;
 try {
-  starboard = require('../systems/starboard');
+  starboard = require("../systems/starboard");
 } catch (err) {
-  console.warn('[messageReactionRemove] starboard system not available:', err?.message || err);
+  console.warn(
+    "[messageReactionRemove] starboard system not available:",
+    err?.message || err,
+  );
 }
 
 /**
@@ -20,7 +23,7 @@ async function handleReactionRolesRemove(reaction, user) {
   const guild = message?.guild;
   if (!guild || !user) return;
 
-  const cfg = await getFeature(guild.id, 'reactionRoles');
+  const cfg = await getFeature(guild.id, "reactionRoles");
   if (cfg?.enabled !== true) return;
 
   const matchesMessage = cfg.messageId && message.id === cfg.messageId;
@@ -39,15 +42,18 @@ async function handleReactionRolesRemove(reaction, user) {
         message.guild.members.cache.get(user.id) ||
         (await message.guild.members.fetch(user.id).catch(() => null));
       if (!member) continue;
-      await member.roles.remove(entry.roleId, 'Reaction role');
+      await member.roles.remove(entry.roleId, "Reaction role");
     } catch (err) {
-      console.error('[messageReactionRemove] Failed to remove reaction role:', err);
+      console.error(
+        "[messageReactionRemove] Failed to remove reaction role:",
+        err,
+      );
     }
   }
 }
 
 module.exports = (client) => {
-  client.on('messageReactionRemove', async (reaction, user) => {
+  client.on("messageReactionRemove", async (reaction, user) => {
     try {
       if (!reaction || !reaction.message) return;
       if (user && user.bot) return;
@@ -74,18 +80,18 @@ module.exports = (client) => {
       try {
         await handleReactionRolesRemove(reaction, user);
       } catch (err) {
-        console.error('[messageReactionRemove] reaction roles error:', err);
+        console.error("[messageReactionRemove] reaction roles error:", err);
       }
 
-      if (starboard && typeof starboard.handleReactionRemove === 'function') {
+      if (starboard && typeof starboard.handleReactionRemove === "function") {
         try {
           await starboard.handleReactionRemove(reaction, user);
         } catch (err) {
-          console.error('[messageReactionRemove] starboard error:', err);
+          console.error("[messageReactionRemove] starboard error:", err);
         }
       }
     } catch (err) {
-      console.error('[messageReactionRemove] Error:', err);
+      console.error("[messageReactionRemove] Error:", err);
     }
   });
 };

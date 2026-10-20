@@ -2,14 +2,17 @@
 //
 // AutoKick (feature opcional): expulsa membros que acumulam demasiadas infrações.
 
-const { getFeature } = require('./featuresService');
-const logger = require('./logger');
+const { getFeature } = require("./featuresService");
+const logger = require("./logger");
 
 let Infraction = null;
 try {
-  Infraction = require('../database/models/Infraction');
+  Infraction = require("../database/models/Infraction");
 } catch (err) {
-  console.warn('[autoKick] Infraction model not available:', err?.message || err);
+  console.warn(
+    "[autoKick] Infraction model not available:",
+    err?.message || err,
+  );
 }
 
 async function checkAutoKick(client, guildId, userId) {
@@ -17,13 +20,15 @@ async function checkAutoKick(client, guildId, userId) {
     if (!Infraction || !client) return;
     if (!guildId || !userId) return;
 
-    const cfg = await getFeature(guildId, 'autoKick');
+    const cfg = await getFeature(guildId, "autoKick");
     if (cfg?.enabled !== true) return;
 
     const limit = Math.max(1, Number(cfg.infractionsToKick) || 1);
 
     // Critério de "infrações ativas": todas as registadas no modelo (que tem TTL de 90 dias).
-    const total = await Infraction.countDocuments({ guildId, userId }).catch(() => 0);
+    const total = await Infraction.countDocuments({ guildId, userId }).catch(
+      () => 0,
+    );
     if (total < limit) return;
 
     const guild = client.guilds?.cache?.get(guildId);
@@ -34,17 +39,17 @@ async function checkAutoKick(client, guildId, userId) {
       await guild.members.kick(userId, reason);
       await logger(
         client,
-        'AutoKick',
+        "AutoKick",
         { id: userId },
         client.user,
         `Membro expulso automaticamente.\nInfrações: **${total}/${limit}**`,
-        guild
+        guild,
       );
     } catch (err) {
-      console.error('[autoKick] Failed to kick user:', err);
+      console.error("[autoKick] Failed to kick user:", err);
     }
   } catch (err) {
-    console.error('[autoKick] checkAutoKick error:', err);
+    console.error("[autoKick] checkAutoKick error:", err);
   }
 }
 

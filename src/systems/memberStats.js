@@ -12,18 +12,21 @@
  */
 async function recordMemberEvent(guildId, field) {
   if (!guildId) return;
-  if (field !== 'joins' && field !== 'leaves') return;
+  if (field !== "joins" && field !== "leaves") return;
 
   try {
-    const MemberStat = require('../database/models/MemberStat');
+    const MemberStat = require("../database/models/MemberStat");
     const date = new Date().toISOString().slice(0, 10);
     await MemberStat.updateOne(
       { guildId, date },
       { $inc: { [field]: 1 } },
-      { upsert: true }
+      { upsert: true },
     ).exec();
   } catch (err) {
-    console.warn('[memberStats] Falha ao registar evento:', err?.message || err);
+    console.warn(
+      "[memberStats] Falha ao registar evento:",
+      err?.message || err,
+    );
   }
 }
 
@@ -34,9 +37,14 @@ async function recordMemberEvent(guildId, field) {
 async function getRecentCounts(guildId, days) {
   const span = Math.max(1, Number(days) || 7);
   try {
-    const MemberStat = require('../database/models/MemberStat');
-    const since = new Date(Date.now() - (span - 1) * 86400000).toISOString().slice(0, 10);
-    const rows = await MemberStat.find({ guildId, date: { $gte: since } }).lean();
+    const MemberStat = require("../database/models/MemberStat");
+    const since = new Date(Date.now() - (span - 1) * 86400000)
+      .toISOString()
+      .slice(0, 10);
+    const rows = await MemberStat.find({
+      guildId,
+      date: { $gte: since },
+    }).lean();
     let joins = 0;
     let leaves = 0;
     for (const r of rows) {
@@ -45,7 +53,7 @@ async function getRecentCounts(guildId, days) {
     }
     return { joins, leaves };
   } catch (err) {
-    console.warn('[memberStats] Falha ao ler contadores:', err?.message || err);
+    console.warn("[memberStats] Falha ao ler contadores:", err?.message || err);
     return { joins: 0, leaves: 0 };
   }
 }

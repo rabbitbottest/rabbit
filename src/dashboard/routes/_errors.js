@@ -3,7 +3,7 @@
 // Resposta de erro uniforme para as rotas da dashboard.
 // Evita repetir o mesmo bloco try/catch/500 em dezenas de endpoints.
 
-const GENERIC_MESSAGE = 'Internal Server Error';
+const GENERIC_MESSAGE = "Internal Server Error";
 
 // Regista o erro no servidor e devolve uma resposta 500 genérica.
 // A mensagem interna nunca é enviada ao cliente.

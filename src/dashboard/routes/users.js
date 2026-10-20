@@ -1,8 +1,8 @@
 // src/dashboard/routes/users.js
 
-const { sendServerError } = require('./_errors');
-const rateLimit = require('../../systems/rateLimit');
-const { getGuild } = require('../../services/guildService');
+const { sendServerError } = require("./_errors");
+const rateLimit = require("../../systems/rateLimit");
+const { getGuild } = require("../../services/guildService");
 
 /**
  * Users routes (Dashboard -> Users tab)
@@ -19,23 +19,26 @@ function registerUsersRoutes({
   sanitizeId,
   guildMembersLastFetch,
   infractionsService,
-  TicketLogModel
+  TicketLogModel,
 }) {
-  const guardGuildParam = typeof requireGuildAccess === 'function'
-    ? requireGuildAccess({ from: 'params', key: 'guildId' })
-    : (req, res, next) => next();
+  const guardGuildParam =
+    typeof requireGuildAccess === "function"
+      ? requireGuildAccess({ from: "params", key: "guildId" })
+      : (req, res, next) => next();
 
-  const canViewUsers = typeof requirePerm === 'function'
-    ? requirePerm({ anyOf: ['canManageUsers', 'canViewLogs', 'canActOnCases'] })
-    : (req, res, next) => next();
+  const canViewUsers =
+    typeof requirePerm === "function"
+      ? requirePerm({
+          anyOf: ["canManageUsers", "canViewLogs", "canActOnCases"],
+        })
+      : (req, res, next) => next();
   function mapMemberRoles(member, guild) {
     try {
       // Hide @everyone (same id as guild) and managed/integration roles.
       return (
         member?.roles?.cache
           ?.filter((r) => r && r.id !== guild.id && !r.managed)
-          .map((r) => ({ id: r.id, name: r.name })) ||
-        []
+          .map((r) => ({ id: r.id, name: r.name })) || []
       );
     } catch {
       return [];
@@ -51,7 +54,7 @@ function registerUsersRoutes({
       tag: member.user?.tag || null,
       bot: !!member.user?.bot,
       joinedAt: member.joinedAt || null,
-      roles: mapMemberRoles(member, guild)
+      roles: mapMemberRoles(member, guild),
     };
   }
 
@@ -59,67 +62,92 @@ function registerUsersRoutes({
   // Por omissão: nome. "joined" = entrada mais recente primeiro; "id" = ID.
   function makeComparator(sortKey) {
     return (a, b) => {
-      if (sortKey === 'joined') {
+      if (sortKey === "joined") {
         const aj = a.joinedAt ? new Date(a.joinedAt).getTime() : 0;
         const bj = b.joinedAt ? new Date(b.joinedAt).getTime() : 0;
-        return (bj - aj) || String(a.username || a.tag || '').localeCompare(String(b.username || b.tag || ''));
+        return (
+          bj - aj ||
+          String(a.username || a.tag || "").localeCompare(
+            String(b.username || b.tag || ""),
+          )
+        );
       }
-      if (sortKey === 'id') {
-        return String(a.id).localeCompare(String(b.id), undefined, { numeric: true });
+      if (sortKey === "id") {
+        return String(a.id).localeCompare(String(b.id), undefined, {
+          numeric: true,
+        });
       }
-      const an = (a.username || a.tag || '').toLowerCase();
-      const bn = (b.username || b.tag || '').toLowerCase();
+      const an = (a.username || a.tag || "").toLowerCase();
+      const bn = (b.username || b.tag || "").toLowerCase();
       return an.localeCompare(bn) || String(a.id).localeCompare(String(b.id));
     };
   }
 
   // Guild members (for Users tab) - paginated + optional search
   app.get(
-    '/api/guilds/:guildId/users',
+    "/api/guilds/:guildId/users",
     requireDashboardAuth,
     canViewUsers,
     guardGuildParam,
-    rateLimit({ windowMs: 60_000, max: 120, keyPrefix: 'rl:users:list:' }),
+    rateLimit({ windowMs: 60_000, max: 120, keyPrefix: "rl:users:list:" }),
     async (req, res) => {
       try {
         const _client = getClient();
-        if (!_client) return res.json({ ok: true, page: 1, limit: 50, total: 0, items: [] });
+        if (!_client)
+          return res.json({
+            ok: true,
+            page: 1,
+            limit: 50,
+            total: 0,
+            items: [],
+          });
 
         const guildId = sanitizeId(req.params.guildId);
-        if (!guildId) return res.status(400).json({ ok: false, error: 'guildId is required' });
+        if (!guildId)
+          return res
+            .status(400)
+            .json({ ok: false, error: "guildId is required" });
 
         const guild = getGuild(_client, guildId);
-        if (!guild) return res.status(404).json({ ok: false, error: 'Guild not found' });
+        if (!guild)
+          return res.status(404).json({ ok: false, error: "Guild not found" });
 
-        const page = Math.max(parseInt(req.query.page || '1', 10) || 1, 1);
-        const limitRaw = parseInt(req.query.limit || '50', 10);
-        const limit = Math.min(Math.max(Number.isFinite(limitRaw) ? limitRaw : 50, 10), 200);
+        const page = Math.max(parseInt(req.query.page || "1", 10) || 1, 1);
+        const limitRaw = parseInt(req.query.limit || "50", 10);
+        const limit = Math.min(
+          Math.max(Number.isFinite(limitRaw) ? limitRaw : 50, 10),
+          200,
+        );
 
-        const search = (req.query.search || '').toString().trim();
-        const sync = String(req.query.sync || '') === '1';
+        const search = (req.query.search || "").toString().trim();
+        const sync = String(req.query.sync || "") === "1";
         // Por omissão a tab de Utilizadores mostra apenas pessoas; os bots podem
         // ser incluídos explicitamente (usersIncludeBots no dashboard).
-        const includeBots = ['1', 'true', 'yes'].includes(
-          String(req.query.includeBots || '').toLowerCase()
+        const includeBots = ["1", "true", "yes"].includes(
+          String(req.query.includeBots || "").toLowerCase(),
         );
 
         // Ordenação. Por omissão: nome (comportamento anterior). "joined" = data de
         // entrada (mais recentes primeiro); "id" = ID.
-        const sortKey = (req.query.sort || '').toString().trim().toLowerCase();
+        const sortKey = (req.query.sort || "").toString().trim().toLowerCase();
         const compareItems = makeComparator(sortKey);
 
         // Sync mode (explicit): full fetch, but guarded to avoid gateway spam.
         // If within cooldown, skip the fetch but still return cached results (avoid 429 UX).
         const now = Date.now();
         const last = guildMembersLastFetch.get(guildId) || 0;
-        const canSync = (now - last) >= 2 * 60 * 1000;
+        const canSync = now - last >= 2 * 60 * 1000;
 
         if (sync && canSync) {
           try {
             await guild.members.fetch();
             guildMembersLastFetch.set(guildId, Date.now());
           } catch (e) {
-            console.warn('[Dashboard] Failed to sync member list for guild', guildId, e);
+            console.warn(
+              "[Dashboard] Failed to sync member list for guild",
+              guildId,
+              e,
+            );
           }
         }
 
@@ -130,7 +158,11 @@ function registerUsersRoutes({
             await guild.members.fetch();
             guildMembersLastFetch.set(guildId, Date.now());
           } catch (e) {
-            console.warn('[Dashboard] Failed to warm member cache for guild', guildId, e);
+            console.warn(
+              "[Dashboard] Failed to warm member cache for guild",
+              guildId,
+              e,
+            );
           }
         }
 
@@ -140,16 +172,21 @@ function registerUsersRoutes({
           const q = search.toLowerCase();
 
           try {
-            const coll = await guild.members.fetch({ query: search, limit: Math.min(limit, 100) });
+            const coll = await guild.members.fetch({
+              query: search,
+              limit: Math.min(limit, 100),
+            });
             items = coll.map((m) => mapMemberSummary(m, guild));
-          } catch (e) {
+          } catch {
             // Fallback to cache search
             items = guild.members.cache
               .filter((m) => {
-                const tag = (m.user?.tag || '').toLowerCase();
-                const username = (m.user?.username || '').toLowerCase();
-                const id = (m.id || '').toLowerCase();
-                return tag.includes(q) || username.includes(q) || id.includes(q);
+                const tag = (m.user?.tag || "").toLowerCase();
+                const username = (m.user?.username || "").toLowerCase();
+                const id = (m.id || "").toLowerCase();
+                return (
+                  tag.includes(q) || username.includes(q) || id.includes(q)
+                );
               })
               .map((m) => mapMemberSummary(m, guild));
           }
@@ -161,7 +198,13 @@ function registerUsersRoutes({
           const total = items.length;
           const start = (page - 1) * limit;
           const end = start + limit;
-          return res.json({ ok: true, page, limit, total, items: items.slice(start, end) });
+          return res.json({
+            ok: true,
+            page,
+            limit,
+            total,
+            items: items.slice(start, end),
+          });
         }
 
         // Default listing: cache-based + paginated
@@ -174,48 +217,66 @@ function registerUsersRoutes({
         const total = items.length;
         const start = (page - 1) * limit;
         const end = start + limit;
-        return res.json({ ok: true, page, limit, total, items: items.slice(start, end) });
+        return res.json({
+          ok: true,
+          page,
+          limit,
+          total,
+          items: items.slice(start, end),
+        });
       } catch (err) {
-        return sendServerError(res, '/api/guilds/:guildId/users', err);
+        return sendServerError(res, "/api/guilds/:guildId/users", err);
       }
-    }
+    },
   );
 
   // Export guild members (CSV or JSON) with the same filters as the list.
   app.get(
-    '/api/guilds/:guildId/users/export',
+    "/api/guilds/:guildId/users/export",
     requireDashboardAuth,
     canViewUsers,
     guardGuildParam,
-    rateLimit({ windowMs: 60_000, max: 10, keyPrefix: 'rl:users:export:' }),
+    rateLimit({ windowMs: 60_000, max: 10, keyPrefix: "rl:users:export:" }),
     async (req, res) => {
       try {
         const _client = getClient();
         const guildId = sanitizeId(req.params.guildId);
-        if (!guildId) return res.status(400).json({ ok: false, error: 'guildId is required' });
-        if (!_client) return res.status(503).json({ ok: false, error: 'Discord client not ready' });
+        if (!guildId)
+          return res
+            .status(400)
+            .json({ ok: false, error: "guildId is required" });
+        if (!_client)
+          return res
+            .status(503)
+            .json({ ok: false, error: "Discord client not ready" });
 
         const guild = getGuild(_client, guildId);
-        if (!guild) return res.status(404).json({ ok: false, error: 'Guild not found' });
+        if (!guild)
+          return res.status(404).json({ ok: false, error: "Guild not found" });
 
-        const search = (req.query.search || '').toString().trim().toLowerCase();
-        const includeBots = ['1', 'true', 'yes'].includes(
-          String(req.query.includeBots || '').toLowerCase()
+        const search = (req.query.search || "").toString().trim().toLowerCase();
+        const includeBots = ["1", "true", "yes"].includes(
+          String(req.query.includeBots || "").toLowerCase(),
         );
-        const sortKey = (req.query.sort || '').toString().trim().toLowerCase();
-        const format = (req.query.format || 'csv').toString().trim().toLowerCase() === 'json'
-          ? 'json'
-          : 'csv';
+        const sortKey = (req.query.sort || "").toString().trim().toLowerCase();
+        const format =
+          (req.query.format || "csv").toString().trim().toLowerCase() === "json"
+            ? "json"
+            : "csv";
 
         // Aquece a cache se estiver vazia (respeitando o cooldown).
         const now = Date.now();
         const last = guildMembersLastFetch.get(guildId) || 0;
-        if (guild.members.cache.size === 0 && (now - last) >= 2 * 60 * 1000) {
+        if (guild.members.cache.size === 0 && now - last >= 2 * 60 * 1000) {
           try {
             await guild.members.fetch();
             guildMembersLastFetch.set(guildId, Date.now());
           } catch (e) {
-            console.warn('[Dashboard] Failed to warm member cache for export', guildId, e);
+            console.warn(
+              "[Dashboard] Failed to warm member cache for export",
+              guildId,
+              e,
+            );
           }
         }
 
@@ -225,9 +286,13 @@ function registerUsersRoutes({
 
         if (search) {
           items = items.filter((it) => {
-            const tag = (it.tag || '').toLowerCase();
-            const username = (it.username || '').toLowerCase();
-            return tag.includes(search) || username.includes(search) || String(it.id).includes(search);
+            const tag = (it.tag || "").toLowerCase();
+            const username = (it.username || "").toLowerCase();
+            return (
+              tag.includes(search) ||
+              username.includes(search) ||
+              String(it.id).includes(search)
+            );
           });
         }
 
@@ -238,75 +303,108 @@ function registerUsersRoutes({
         if (truncated) items = items.slice(0, MAX_EXPORT);
 
         const stamp = new Date().toISOString().slice(0, 10);
-        if (format === 'json') {
-          res.setHeader('Content-Type', 'application/json; charset=utf-8');
+        if (format === "json") {
+          res.setHeader("Content-Type", "application/json; charset=utf-8");
           res.setHeader(
-            'Content-Disposition',
-            `attachment; filename="users-${guildId}-${stamp}.json"`
+            "Content-Disposition",
+            `attachment; filename="users-${guildId}-${stamp}.json"`,
           );
-          return res.send(JSON.stringify({ ok: true, guildId, total: items.length, truncated, items }, null, 2));
+          return res.send(
+            JSON.stringify(
+              { ok: true, guildId, total: items.length, truncated, items },
+              null,
+              2,
+            ),
+          );
         }
 
-        const csvCell = (v) => '"' + String(v == null ? '' : v).replace(/"/g, '""').replace(/\r?\n/g, ' ') + '"';
-        const lines = ['id,username,tag,bot,joinedAt,roles'];
+        const csvCell = (v) =>
+          '"' +
+          String(v == null ? "" : v)
+            .replace(/"/g, '""')
+            .replace(/\r?\n/g, " ") +
+          '"';
+        const lines = ["id,username,tag,bot,joinedAt,roles"];
         for (const it of items) {
-          const roles = (it.roles || []).map((r) => r.name).join('; ');
-          lines.push([
-            csvCell(it.id),
-            csvCell(it.username || ''),
-            csvCell(it.tag || ''),
-            csvCell(it.bot ? 'true' : 'false'),
-            csvCell(it.joinedAt ? new Date(it.joinedAt).toISOString() : ''),
-            csvCell(roles)
-          ].join(','));
+          const roles = (it.roles || []).map((r) => r.name).join("; ");
+          lines.push(
+            [
+              csvCell(it.id),
+              csvCell(it.username || ""),
+              csvCell(it.tag || ""),
+              csvCell(it.bot ? "true" : "false"),
+              csvCell(it.joinedAt ? new Date(it.joinedAt).toISOString() : ""),
+              csvCell(roles),
+            ].join(","),
+          );
         }
 
-        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-        res.setHeader('Content-Disposition', `attachment; filename="users-${guildId}-${stamp}.csv"`);
-        return res.send(lines.join('\n'));
+        res.setHeader("Content-Type", "text/csv; charset=utf-8");
+        res.setHeader(
+          "Content-Disposition",
+          `attachment; filename="users-${guildId}-${stamp}.csv"`,
+        );
+        return res.send(lines.join("\n"));
       } catch (err) {
-        return sendServerError(res, '/api/guilds/:guildId/users/export', err);
+        return sendServerError(res, "/api/guilds/:guildId/users/export", err);
       }
-    }
+    },
   );
 
   // User history (infractions + tickets)
-  app.get('/api/guilds/:guildId/users/:userId/history', requireDashboardAuth, canViewUsers, guardGuildParam, async (req, res) => {
-    try {
-      const guildId = sanitizeId(req.params.guildId);
-      const userId = sanitizeId(req.params.userId);
-      if (!guildId || !userId) {
-        return res.status(400).json({ ok: false, error: 'guildId and userId are required' });
+  app.get(
+    "/api/guilds/:guildId/users/:userId/history",
+    requireDashboardAuth,
+    canViewUsers,
+    guardGuildParam,
+    async (req, res) => {
+      try {
+        const guildId = sanitizeId(req.params.guildId);
+        const userId = sanitizeId(req.params.userId);
+        if (!guildId || !userId) {
+          return res
+            .status(400)
+            .json({ ok: false, error: "guildId and userId are required" });
+        }
+
+        if (!infractionsService) {
+          return res
+            .status(503)
+            .json({ ok: false, error: "Infractions service not available" });
+        }
+
+        const [infractions, counts, ticketDocs] = await Promise.all([
+          infractionsService.getRecentInfractions(guildId, userId, 10),
+          infractionsService.countInfractionsByType(guildId, userId),
+          TicketLogModel
+            ? TicketLogModel.find({ guildId, userId })
+                .sort({ createdAt: -1 })
+                .limit(10)
+                .lean()
+            : Promise.resolve([]),
+        ]);
+
+        const tickets = (ticketDocs || []).map((t) => ({
+          ticketNumber: t.ticketNumber,
+          createdAt: t.createdAt || null,
+          closedAt: t.closedAt || null,
+        }));
+
+        return res.json({
+          ok: true,
+          infractions: infractions || [],
+          counts: counts || {},
+          tickets,
+        });
+      } catch (err) {
+        return sendServerError(
+          res,
+          "/api/guilds/:guildId/users/:userId/history",
+          err,
+        );
       }
-
-      if (!infractionsService) {
-        return res.status(503).json({ ok: false, error: 'Infractions service not available' });
-      }
-
-      const [infractions, counts, ticketDocs] = await Promise.all([
-        infractionsService.getRecentInfractions(guildId, userId, 10),
-        infractionsService.countInfractionsByType(guildId, userId),
-        TicketLogModel
-          ? TicketLogModel.find({ guildId, userId }).sort({ createdAt: -1 }).limit(10).lean()
-          : Promise.resolve([])
-      ]);
-
-      const tickets = (ticketDocs || []).map((t) => ({
-        ticketNumber: t.ticketNumber,
-        createdAt: t.createdAt || null,
-        closedAt: t.closedAt || null
-      }));
-
-      return res.json({
-        ok: true,
-        infractions: infractions || [],
-        counts: counts || {},
-        tickets
-      });
-    } catch (err) {
-      return sendServerError(res, '/api/guilds/:guildId/users/:userId/history', err);
-    }
-  });
+    },
+  );
 }
 
 module.exports = { registerUsersRoutes };

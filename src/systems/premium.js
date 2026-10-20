@@ -4,14 +4,20 @@
 // ativo (ativado por doação). Este ficheiro é o único ponto de verdade sobre
 // *que* módulos são premium e sobre *se* o premium está ativo num servidor.
 
-const { getGuildConfig } = require('./guildConfigService');
+const { getGuildConfig } = require("./guildConfigService");
 
 // Módulos que exigem premium. As chaves têm de coincidir com os audit actions
 // usados nas rotas (ver src/dashboard/routes/*) para o gate ser consistente.
-const PREMIUM_MODULES = ['gamenews', 'tempvoice', 'tickets', 'trust', 'giveaways'];
+const PREMIUM_MODULES = [
+  "gamenews",
+  "tempvoice",
+  "tickets",
+  "trust",
+  "giveaways",
+];
 
 function isPremiumModule(name) {
-  return PREMIUM_MODULES.includes(String(name || '').toLowerCase());
+  return PREMIUM_MODULES.includes(String(name || "").toLowerCase());
 }
 
 /**
@@ -19,7 +25,7 @@ function isPremiumModule(name) {
  * @returns {{enabled: boolean, until: Date|null, note: string|null, activatedAt: Date|null, active: boolean}}
  */
 function normalizePremium(raw) {
-  const src = raw && typeof raw === 'object' ? raw : {};
+  const src = raw && typeof raw === "object" ? raw : {};
 
   let until = null;
   if (src.until) {
@@ -29,7 +35,10 @@ function normalizePremium(raw) {
 
   let activatedAt = null;
   if (src.activatedAt) {
-    const d = src.activatedAt instanceof Date ? src.activatedAt : new Date(src.activatedAt);
+    const d =
+      src.activatedAt instanceof Date
+        ? src.activatedAt
+        : new Date(src.activatedAt);
     if (!Number.isNaN(d.getTime())) activatedAt = d;
   }
 
@@ -40,9 +49,12 @@ function normalizePremium(raw) {
   return {
     enabled,
     until,
-    note: typeof src.note === 'string' && src.note.trim() ? src.note.trim().slice(0, 200) : null,
+    note:
+      typeof src.note === "string" && src.note.trim()
+        ? src.note.trim().slice(0, 200)
+        : null,
     activatedAt,
-    active
+    active,
   };
 }
 
@@ -65,5 +77,5 @@ module.exports = {
   normalizePremium,
   isPremiumActive,
   getPremium,
-  isGuildPremium
+  isGuildPremium,
 };

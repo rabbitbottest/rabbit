@@ -1,13 +1,13 @@
 // src/database/models/TicketLog.js
 
-const { Schema, model } = require('mongoose');
+const { Schema, model } = require("mongoose");
 
 const ticketLogSchema = new Schema(
   {
     ticketNumber: { type: Number, required: true },
 
     // Link to the persistent Ticket document (added in perf8)
-    ticketId: { type: Schema.Types.ObjectId, ref: 'Ticket', default: null },
+    ticketId: { type: Schema.Types.ObjectId, ref: "Ticket", default: null },
 
     guildId: { type: String, required: true },
 
@@ -21,14 +21,14 @@ const ticketLogSchema = new Schema(
 
     closedAt: { type: Date, default: null },
     closedById: { type: String, default: null },
-    closedByUsername: { type: String, default: null }
+    closedByUsername: { type: String, default: null },
   },
   {
-    timestamps: false
-  }
+    timestamps: false,
+  },
 );
 
 ticketLogSchema.index({ guildId: 1, ticketNumber: 1 });
 ticketLogSchema.index({ guildId: 1, createdAt: -1 });
 
-module.exports = model('TicketLog', ticketLogSchema);
+module.exports = model("TicketLog", ticketLogSchema);

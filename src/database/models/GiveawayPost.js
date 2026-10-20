@@ -3,7 +3,7 @@
 // Stores which giveaways have already been published per guild,
 // so we never repost the same giveaway.
 
-const { Schema, model } = require('mongoose');
+const { Schema, model } = require("mongoose");
 
 const giveawayPostSchema = new Schema(
   {
@@ -15,11 +15,11 @@ const giveawayPostSchema = new Schema(
     // For debug/auditing
     title: { type: String, default: null },
     url: { type: String, default: null },
-    postedAt: { type: Date, default: Date.now }
+    postedAt: { type: Date, default: Date.now },
   },
-  { versionKey: false }
+  { versionKey: false },
 );
 
 giveawayPostSchema.index({ guildId: 1, giveawayId: 1 }, { unique: true });
 
-module.exports = model('GiveawayPost', giveawayPostSchema);
+module.exports = model("GiveawayPost", giveawayPostSchema);

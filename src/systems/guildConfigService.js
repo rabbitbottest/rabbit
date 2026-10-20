@@ -1,6 +1,6 @@
 // src/systems/guildConfigService.js
 
-const GuildConfig = require('../database/models/GuildConfig');
+const GuildConfig = require("../database/models/GuildConfig");
 
 const CACHE_TTL_MS = 60 * 1000; // 1 minute
 
@@ -15,7 +15,9 @@ async function getGuildConfig(guildId) {
     return cached.value;
   }
 
-  const doc = await GuildConfig.findOne({ guildId }).lean().catch(() => null);
+  const doc = await GuildConfig.findOne({ guildId })
+    .lean()
+    .catch(() => null);
   const value = doc || null;
 
   _cache.set(guildId, { at: now, value });

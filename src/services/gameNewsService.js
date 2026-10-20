@@ -17,15 +17,15 @@ function toFeedDto(doc) {
   return {
     id: d._id != null ? String(d._id) : null,
     guildId: d.guildId || null,
-    name: d.name || 'Feed',
+    name: d.name || "Feed",
     feedUrl: d.feedUrl || d.feed,
     channelId: d.channelId,
     logChannelId: d.logChannelId || null,
     extraChannelIds: Array.isArray(d.extraChannelIds) ? d.extraChannelIds : [],
     enabled: d.enabled !== false,
-    intervalMs: typeof d.intervalMs === 'number' ? d.intervalMs : null,
-    maxPerCycle: typeof d.maxPerCycle === 'number' ? d.maxPerCycle : null,
-    excludeKeywords: Array.isArray(d.excludeKeywords) ? d.excludeKeywords : []
+    intervalMs: typeof d.intervalMs === "number" ? d.intervalMs : null,
+    maxPerCycle: typeof d.maxPerCycle === "number" ? d.maxPerCycle : null,
+    excludeKeywords: Array.isArray(d.excludeKeywords) ? d.excludeKeywords : [],
   };
 }
 
@@ -50,7 +50,7 @@ function listStaticFeeds(sources, options = {}) {
       extraChannelIds: [],
       enabled: true,
       intervalMs: null,
-      maxPerCycle: null
+      maxPerCycle: null,
     };
     if (withId) out.id = String(idx);
     return out;
@@ -74,5 +74,5 @@ async function listFeeds({ GameNewsFeed, guildId }) {
 module.exports = {
   toFeedDto,
   listStaticFeeds,
-  listFeeds
+  listFeeds,
 };

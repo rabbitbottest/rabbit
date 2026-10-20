@@ -5,25 +5,25 @@
 // liga cada módulo de rotas à app Express. Isto mantém o `src/dashboard.js`
 // focado na criação do servidor e não na lista de dependências de cada rota.
 
-const { registerAuthRoutes } = require('./auth');
-const { registerGameNewsRoutes } = require('./gamenews');
-const { registerGiveawaysRoutes } = require('./giveaways');
+const { registerAuthRoutes } = require("./auth");
+const { registerGameNewsRoutes } = require("./gamenews");
+const { registerGiveawaysRoutes } = require("./giveaways");
 
-const { registerModRoutes } = require('./mod');
-const { registerConfigRoutes } = require('./config');
-const { registerLogsRoutes } = require('./logs');
-const { registerTicketsRoutes } = require('./tickets');
-const { registerUsersRoutes } = require('./users');
-const { registerGuildsRoutes } = require('./guilds');
-const { registerUserRoutes } = require('./user');
-const { registerTrustRoutes } = require('./trust');
-const { registerCoreRoutes } = require('./core');
-const { registerAuditRoutes } = require('./audit');
-const { registerAdminRoutes } = require('./admin');
-const { registerTempVoiceRoutes } = require('./tempVoice');
-const { registerFeaturesRoutes } = require('./features');
-const { registerPremiumRoutes, createPremiumGuard } = require('./premium');
-const { resolveGuildMember } = require('../../services/moderationService');
+const { registerModRoutes } = require("./mod");
+const { registerConfigRoutes } = require("./config");
+const { registerLogsRoutes } = require("./logs");
+const { registerTicketsRoutes } = require("./tickets");
+const { registerUsersRoutes } = require("./users");
+const { registerGuildsRoutes } = require("./guilds");
+const { registerUserRoutes } = require("./user");
+const { registerTrustRoutes } = require("./trust");
+const { registerCoreRoutes } = require("./core");
+const { registerAuditRoutes } = require("./audit");
+const { registerAdminRoutes } = require("./admin");
+const { registerTempVoiceRoutes } = require("./tempVoice");
+const { registerFeaturesRoutes } = require("./features");
+const { registerPremiumRoutes, createPremiumGuard } = require("./premium");
+const { resolveGuildMember } = require("../../services/moderationService");
 
 function registerDashboardRoutes(ctx) {
   const {
@@ -86,7 +86,7 @@ function registerDashboardRoutes(ctx) {
     guildMembersLastFetch,
     getClient,
     getLogsCache,
-    setLogsCache
+    setLogsCache,
   } = ctx;
 
   // Closures de modelos no formato esperado pelas rotas de moderação/logs/tickets.
@@ -95,7 +95,7 @@ function registerDashboardRoutes(ctx) {
     DashboardLog,
     TicketLog,
     UserActivity: UserActivityModel,
-    PresenceSession: PresenceSessionModel
+    PresenceSession: PresenceSessionModel,
   });
   const getLogModels = () => ({ DashboardLog, TicketLog });
 
@@ -113,7 +113,7 @@ function registerDashboardRoutes(ctx) {
     status,
     metrics,
     getClient,
-    Infraction
+    Infraction,
   });
 
   registerAuthRoutes({
@@ -126,7 +126,7 @@ function registerDashboardRoutes(ctx) {
     rateLimit,
     ADMIN_PERMISSIONS,
     getClient,
-    sanitizeId
+    sanitizeId,
   });
 
   registerGuildsRoutes({
@@ -135,7 +135,7 @@ function registerDashboardRoutes(ctx) {
     requireGuildAccess,
     requirePerm,
     getClient,
-    sanitizeId
+    sanitizeId,
   });
 
   registerUserRoutes({
@@ -149,7 +149,7 @@ function registerDashboardRoutes(ctx) {
     config,
     getTrustConfig,
     getTrustLabel,
-    getEffectiveMuteDuration
+    getEffectiveMuteDuration,
   });
 
   registerTrustRoutes({
@@ -159,12 +159,12 @@ function registerDashboardRoutes(ctx) {
     requirePerm,
     requirePremium,
     GuildConfig,
-    resolveGuildTrustConfig: require('../../utils/trust').getGuildTrustConfig,
+    resolveGuildTrustConfig: require("../../utils/trust").getGuildTrustConfig,
     recordAudit,
     getActorFromRequest,
     UserModel,
     getTrustConfig,
-    getTrustLabel
+    getTrustLabel,
   });
 
   registerGameNewsRoutes({
@@ -185,7 +185,7 @@ function registerDashboardRoutes(ctx) {
     GameNewsFeedSchema,
     getClient,
     gameNewsStatusCache,
-    requirePremium
+    requirePremium,
   });
 
   registerGiveawaysRoutes({
@@ -201,7 +201,7 @@ function registerDashboardRoutes(ctx) {
     getClient,
     GuildConfig,
     GiveawayPost,
-    requirePremium
+    requirePremium,
   });
 
   registerModRoutes({
@@ -229,7 +229,7 @@ function registerDashboardRoutes(ctx) {
     infractionsService,
     _getClient: getClient,
     _getModels: getModModels,
-    _getLogsCache: getLogsCache
+    _getLogsCache: getLogsCache,
   });
 
   registerConfigRoutes({
@@ -241,9 +241,9 @@ function registerDashboardRoutes(ctx) {
     sanitizeId,
     GuildConfig,
     GuildConfigSchema,
-    resolveGuildTrustConfig: require('../../utils/trust').getGuildTrustConfig,
+    resolveGuildTrustConfig: require("../../utils/trust").getGuildTrustConfig,
     recordAudit,
-    getActorFromRequest
+    getActorFromRequest,
   });
 
   registerLogsRoutes({
@@ -258,7 +258,7 @@ function registerDashboardRoutes(ctx) {
     LogsQuerySchema,
     _getModels: getLogModels,
     _getLogsCache: getLogsCache,
-    _setLogsCache: setLogsCache
+    _setLogsCache: setLogsCache,
   });
 
   registerTicketsRoutes({
@@ -272,7 +272,7 @@ function registerDashboardRoutes(ctx) {
     recordAudit,
     _getClient: getClient,
     _getModels: () => ({ TicketModel: Ticket, TicketLogModel: TicketLog }),
-    requirePremium
+    requirePremium,
   });
 
   registerUsersRoutes({
@@ -284,7 +284,7 @@ function registerDashboardRoutes(ctx) {
     sanitizeId,
     guildMembersLastFetch,
     infractionsService,
-    TicketLogModel: TicketLog
+    TicketLogModel: TicketLog,
   });
 
   registerAuditRoutes({
@@ -293,7 +293,7 @@ function registerDashboardRoutes(ctx) {
     requirePerm,
     requireGuildAccess,
     sanitizeId,
-    DashboardAudit
+    DashboardAudit,
   });
 
   registerAdminRoutes({
@@ -312,7 +312,7 @@ function registerDashboardRoutes(ctx) {
     getTrustLabel,
     getEffectiveMaxMessages,
     getEffectiveMuteDuration,
-    logger
+    logger,
   });
 
   registerTempVoiceRoutes({
@@ -325,7 +325,7 @@ function registerDashboardRoutes(ctx) {
     GuildConfig,
     TempVoiceChannel,
     getClient,
-    requirePremium
+    requirePremium,
   });
 
   registerFeaturesRoutes({
@@ -333,12 +333,13 @@ function registerDashboardRoutes(ctx) {
     requireDashboardAuth,
     requirePerm,
     requireGuildAccess,
+    rateLimit,
     requirePremium,
     sanitizeId,
     GuildConfig,
     getClient,
     recordAudit,
-    getActorFromRequest
+    getActorFromRequest,
   });
 
   registerPremiumRoutes({
@@ -352,7 +353,7 @@ function registerDashboardRoutes(ctx) {
     PremiumSettings,
     getClient,
     config,
-    rateLimit
+    rateLimit,
   });
 }
 

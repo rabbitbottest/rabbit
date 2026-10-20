@@ -3,15 +3,15 @@
 // Sistema de níveis (XP) — feature opcional "levels".
 // Atribui XP por mensagem, recalcula níveis e expõe o ranking do servidor.
 
-const { EmbedBuilder } = require('discord.js');
-const { getFeature } = require('./featuresService');
-const { tContext } = require('./i18n');
+const { EmbedBuilder } = require("discord.js");
+const { getFeature } = require("./featuresService");
+const { tContext } = require("./i18n");
 
 let Level = null;
 try {
-  Level = require('../database/models/Level');
+  Level = require("../database/models/Level");
 } catch (err) {
-  console.warn('[levels] Level model not available:', err?.message || err);
+  console.warn("[levels] Level model not available:", err?.message || err);
 }
 
 // XP total necessário para atingir um nível (fórmula acumulativa simples).
@@ -30,9 +30,9 @@ function levelFromXp(xp) {
 
 // Anuncia a subida de nível no canal configurado (ou no próprio canal).
 async function announceLevelUp(message, level, cfg) {
-  const content = await tContext(message, 'levels.levelUp', {
+  const content = await tContext(message, "levels.levelUp", {
     user: `<@${message.author.id}>`,
-    level
+    level,
   });
 
   // Embed no estilo dos bots de referência: avatar do membro no cabeçalho,
@@ -40,14 +40,15 @@ async function announceLevelUp(message, level, cfg) {
   const author = message.author;
   const embed = new EmbedBuilder()
     .setAuthor({
-      name: author.username || 'Membro',
-      iconURL: typeof author.displayAvatarURL === 'function'
-        ? author.displayAvatarURL({ size: 128 })
-        : undefined
+      name: author.username || "Membro",
+      iconURL:
+        typeof author.displayAvatarURL === "function"
+          ? author.displayAvatarURL({ size: 128 })
+          : undefined,
     })
-    .setTitle(await tContext(message, 'levels.levelUpTitle'))
+    .setTitle(await tContext(message, "levels.levelUpTitle"))
     .setDescription(content)
-    .setColor('#7c3aed')
+    .setColor("#7c3aed")
     .setTimestamp(new Date());
 
   const channelId = cfg.announceChannelId || message.channelId;
@@ -56,7 +57,7 @@ async function announceLevelUp(message, level, cfg) {
     channel = await message.guild.channels.fetch(channelId).catch(() => null);
   }
   if (!channel) channel = message.channel;
-  if (channel && typeof channel.send === 'function') {
+  if (channel && typeof channel.send === "function") {
     await channel.send({ embeds: [embed] }).catch(() => null);
   }
 }
@@ -67,20 +68,25 @@ async function awardXp(_client, message) {
     if (!message?.guild || !message.author || message.author.bot) return;
 
     const guildId = message.guild.id;
-    const cfg = await getFeature(guildId, 'levels');
+    const cfg = await getFeature(guildId, "levels");
     if (cfg?.enabled !== true) return;
 
     const userId = message.author.id;
     const now = new Date();
     const cooldownMs = Math.max(0, Number(cfg.cooldownSeconds) || 0) * 1000;
 
-    const existing = await Level.findOne({ guildId, userId }).lean().catch(() => null);
+    const existing = await Level.findOne({ guildId, userId })
+      .lean()
+      .catch(() => null);
 
     // Cooldown anti-farm: dentro do intervalo conta a mensagem mas não dá XP.
     if (existing?.lastXpAt && cooldownMs > 0) {
       const elapsed = now.getTime() - new Date(existing.lastXpAt).getTime();
       if (elapsed < cooldownMs) {
-        await Level.updateOne({ guildId, userId }, { $inc: { messages: 1 } }).catch(() => null);
+        await Level.updateOne(
+          { guildId, userId },
+          { $inc: { messages: 1 } },
+        ).catch(() => null);
         return;
       }
     }
@@ -95,10 +101,13 @@ async function awardXp(_client, message) {
 
     const updated = await Level.findOneAndUpdate(
       { guildId, userId },
-      { $set: { xp: newXp, level: newLevel, lastXpAt: now }, $inc: { messages: 1 } },
-      { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }
+      {
+        $set: { xp: newXp, level: newLevel, lastXpAt: now },
+        $inc: { messages: 1 },
+      },
+      { upsert: true, returnDocument: "after", setDefaultsOnInsert: true },
     ).catch((err) => {
-      console.error('[levels] Failed to update Level:', err);
+      console.error("[levels] Failed to update Level:", err);
       return null;
     });
 
@@ -106,22 +115,26 @@ async function awardXp(_client, message) {
       await announceLevelUp(message, newLevel, cfg).catch(() => null);
     }
   } catch (err) {
-    console.error('[levels] awardXp error:', err);
+    console.error("[levels] awardXp error:", err);
   }
 }
 
 async function getRank(guildId, userId) {
   if (!Level) return { xp: 0, level: 0, messages: 0, rank: null };
 
-  const doc = await Level.findOne({ guildId, userId }).lean().catch(() => null);
+  const doc = await Level.findOne({ guildId, userId })
+    .lean()
+    .catch(() => null);
   const xp = Number(doc?.xp) || 0;
-  const higher = await Level.countDocuments({ guildId, xp: { $gt: xp } }).catch(() => 0);
+  const higher = await Level.countDocuments({ guildId, xp: { $gt: xp } }).catch(
+    () => 0,
+  );
 
   return {
     xp,
     level: Number(doc?.level) || 0,
     messages: Number(doc?.messages) || 0,
-    rank: doc ? higher + 1 : null
+    rank: doc ? higher + 1 : null,
   };
 }
 
@@ -133,5 +146,5 @@ module.exports = {
   // Modelo Level (lazy e null-safe).
   get Level() {
     return Level;
-  }
+  },
 };

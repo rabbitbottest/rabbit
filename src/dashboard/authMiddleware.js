@@ -4,7 +4,7 @@
 // Extraído de src/dashboard.js para reduzir o tamanho do entrypoint e permitir
 // testes unitários isolados (ver tests/unit/authMiddleware.test.js).
 
-const { PRIMARY_BOT_OWNER_ID } = require('./botRoles');
+const { PRIMARY_BOT_OWNER_ID } = require("./botRoles");
 
 /**
  * Cria o conjunto de middlewares de auth da dashboard.
@@ -20,13 +20,15 @@ function createAuthMiddleware({ jwt, JWT_SECRET, sanitizeId, config }) {
 
   function isAuthEnabled() {
     const requireAuth = config.dashboard?.requireAuth;
-    const shouldRequire = typeof requireAuth === 'boolean' ? requireAuth : true;
+    const shouldRequire = typeof requireAuth === "boolean" ? requireAuth : true;
 
     // Authentication can be disabled for local development, never in production.
     if (!shouldRequire) {
-      if (process.env.NODE_ENV === 'production') {
+      if (process.env.NODE_ENV === "production") {
         if (!authMisconfigLogged) {
-          console.error('[Dashboard] Ignoring dashboard.requireAuth=false in production.');
+          console.error(
+            "[Dashboard] Ignoring dashboard.requireAuth=false in production.",
+          );
           authMisconfigLogged = true;
         }
         return true;
@@ -44,14 +46,14 @@ function createAuthMiddleware({ jwt, JWT_SECRET, sanitizeId, config }) {
     // Cookie fallback (OAuth flow can store token server-side).
     // HttpOnly cookie is preferred to avoid depending on localStorage.
     try {
-      const cookieHeader = req.headers.cookie ? String(req.headers.cookie) : '';
+      const cookieHeader = req.headers.cookie ? String(req.headers.cookie) : "";
       if (cookieHeader) {
-        const parts = cookieHeader.split(';');
+        const parts = cookieHeader.split(";");
         for (const part of parts) {
-          const idx = part.indexOf('=');
+          const idx = part.indexOf("=");
           if (idx <= 0) continue;
           const k = part.slice(0, idx).trim();
-          if (k !== 'dash_token') continue;
+          if (k !== "dash_token") continue;
           const v = part.slice(idx + 1).trim();
           if (v) return decodeURIComponent(v);
         }
@@ -60,13 +62,13 @@ function createAuthMiddleware({ jwt, JWT_SECRET, sanitizeId, config }) {
       // ignore cookie parsing errors
     }
 
-    const auth = req.headers.authorization || req.headers.Authorization || '';
-    if (typeof auth === 'string' && auth.toLowerCase().startsWith('bearer ')) {
+    const auth = req.headers.authorization || req.headers.Authorization || "";
+    if (typeof auth === "string" && auth.toLowerCase().startsWith("bearer ")) {
       return auth.slice(7).trim();
     }
 
-    const x = req.headers['x-dashboard-token'];
-    if (typeof x === 'string' && x.trim()) return x.trim();
+    const x = req.headers["x-dashboard-token"];
+    if (typeof x === "string" && x.trim()) return x.trim();
 
     return null;
   }
@@ -81,18 +83,26 @@ function createAuthMiddleware({ jwt, JWT_SECRET, sanitizeId, config }) {
     if (!rawToken) return null;
 
     try {
-      const payload = jwt.verify(rawToken, JWT_SECRET, { algorithms: ['HS256'] });
+      const payload = jwt.verify(rawToken, JWT_SECRET, {
+        algorithms: ["HS256"],
+      });
       if (!payload) return null;
 
       // OAuth-only tokens.
-      if (payload.t !== 'oauth' || !payload.sub) return null;
+      if (payload.t !== "oauth" || !payload.sub) return null;
 
       const userId = String(payload.sub);
       return {
         _id: userId,
-        role: userId === PRIMARY_BOT_OWNER_ID ? 'BOT_OWNER' : (payload.role || 'USER'),
-        username: payload.username || 'discord',
-        permissions: (payload.permissions && typeof payload.permissions === 'object') ? payload.permissions : {},
+        role:
+          userId === PRIMARY_BOT_OWNER_ID
+            ? "BOT_OWNER"
+            : payload.role || "USER",
+        username: payload.username || "discord",
+        permissions:
+          payload.permissions && typeof payload.permissions === "object"
+            ? payload.permissions
+            : {},
         // Optional metadata (available on the unscoped OAuth token) to support
         // stable guild listing and admin detection without additional Discord API calls.
         allowedGuilds: Array.isArray(payload.allowedGuilds)
@@ -100,17 +110,29 @@ function createAuthMiddleware({ jwt, JWT_SECRET, sanitizeId, config }) {
               .filter((g) => g && g.id)
               .map((g) => ({
                 id: String(g.id),
-                name: typeof g.name === 'string' ? g.name : null,
-                icon: typeof g.icon === 'string' ? g.icon : null,
+                name: typeof g.name === "string" ? g.name : null,
+                icon: typeof g.icon === "string" ? g.icon : null,
                 owner: g.owner === true,
-                permissions: typeof g.permissions === 'string' ? g.permissions : String(g.permissions || ''),
-                botPresent: (g.botPresent === true) ? true : (g.botPresent === false ? false : null)
+                permissions:
+                  typeof g.permissions === "string"
+                    ? g.permissions
+                    : String(g.permissions || ""),
+                botPresent:
+                  g.botPresent === true
+                    ? true
+                    : g.botPresent === false
+                      ? false
+                      : null,
               }))
           : [],
-        allowedGuildIds: Array.isArray(payload.allowedGuildIds) ? payload.allowedGuildIds.map(String) : [],
-        selectedGuildId: payload.selectedGuildId ? sanitizeId(payload.selectedGuildId) : null,
+        allowedGuildIds: Array.isArray(payload.allowedGuildIds)
+          ? payload.allowedGuildIds.map(String)
+          : [],
+        selectedGuildId: payload.selectedGuildId
+          ? sanitizeId(payload.selectedGuildId)
+          : null,
         profile: payload.profile ? String(payload.profile) : null,
-        oauth: true
+        oauth: true,
       };
     } catch {
       return null;
@@ -124,20 +146,20 @@ function createAuthMiddleware({ jwt, JWT_SECRET, sanitizeId, config }) {
 
     const rawToken = extractToken(req);
     if (!rawToken) {
-      return res.status(401).json({ ok: false, error: 'Unauthorized' });
+      return res.status(401).json({ ok: false, error: "Unauthorized" });
     }
 
     decodeDashboardToken(rawToken)
       .then((user) => {
         if (!user) {
-          return res.status(401).json({ ok: false, error: 'Unauthorized' });
+          return res.status(401).json({ ok: false, error: "Unauthorized" });
         }
         req.dashboardUser = user;
         next();
       })
       .catch((err) => {
-        console.error('[Dashboard] Auth error', err);
-        return res.status(500).json({ ok: false, error: 'Auth error' });
+        console.error("[Dashboard] Auth error", err);
+        return res.status(500).json({ ok: false, error: "Auth error" });
       });
   }
 
@@ -153,12 +175,14 @@ function createAuthMiddleware({ jwt, JWT_SECRET, sanitizeId, config }) {
       if (!isAuthEnabled()) return next();
 
       const u = req.dashboardUser;
-      if (!u) return res.status(401).json({ ok: false, error: 'Unauthorized' });
-      if (u.role === 'BOT_OWNER') return next();
+      if (!u) return res.status(401).json({ ok: false, error: "Unauthorized" });
+      if (u.role === "BOT_OWNER") return next();
       if (!needed.length) return next();
-      const perms = (u.permissions && typeof u.permissions === 'object') ? u.permissions : {};
+      const perms =
+        u.permissions && typeof u.permissions === "object" ? u.permissions : {};
       const allowed = needed.some((k) => perms[k] === true);
-      if (!allowed) return res.status(403).json({ ok: false, error: 'NO_PERMISSION' });
+      if (!allowed)
+        return res.status(403).json({ ok: false, error: "NO_PERMISSION" });
       return next();
     };
   }
@@ -167,45 +191,51 @@ function createAuthMiddleware({ jwt, JWT_SECRET, sanitizeId, config }) {
   // Guild access guard (optional allow-list)
   // ------------------------------
   // All OAuth profiles, including bot admins, stay within their signed guild allow-list.
-  function requireGuildAccess({ from = 'params', key = 'guildId', optional = false } = {}) {
+  function requireGuildAccess({
+    from = "params",
+    key = "guildId",
+    optional = false,
+  } = {}) {
     return (req, res, next) => {
       if (!isAuthEnabled()) return next();
 
       const u = req.dashboardUser;
-      if (!u) return res.status(401).json({ ok: false, error: 'Unauthorized' });
+      if (!u) return res.status(401).json({ ok: false, error: "Unauthorized" });
 
-      const list = Array.isArray(u.allowedGuildIds) ? u.allowedGuildIds.filter(Boolean).map(String) : [];
+      const list = Array.isArray(u.allowedGuildIds)
+        ? u.allowedGuildIds.filter(Boolean).map(String)
+        : [];
 
-      let raw = '';
+      let raw = "";
       try {
-        if (from === 'query') raw = (req.query && req.query[key]) || '';
-        else if (from === 'body') raw = (req.body && req.body[key]) || '';
-        else raw = (req.params && req.params[key]) || '';
+        if (from === "query") raw = (req.query && req.query[key]) || "";
+        else if (from === "body") raw = (req.body && req.body[key]) || "";
+        else raw = (req.params && req.params[key]) || "";
       } catch {
-        raw = '';
+        raw = "";
       }
 
       const gid = sanitizeId(raw);
-      const selected = u && u.selectedGuildId ? String(u.selectedGuildId) : '';
+      const selected = u && u.selectedGuildId ? String(u.selectedGuildId) : "";
 
       // If this route requires a guild id, force the user to select a guild first.
       if (!selected && !optional) {
-        return res.status(403).json({ ok: false, error: 'NO_GUILD_SELECTED' });
+        return res.status(403).json({ ok: false, error: "NO_GUILD_SELECTED" });
       }
 
       if (!gid) {
         if (optional) return next();
-        return res.status(400).json({ ok: false, error: 'Missing guildId' });
+        return res.status(400).json({ ok: false, error: "Missing guildId" });
       }
 
       // Enforce scoped token
       if (selected && gid !== selected) {
-        return res.status(403).json({ ok: false, error: 'NO_GUILD_SELECTED' });
+        return res.status(403).json({ ok: false, error: "NO_GUILD_SELECTED" });
       }
 
       // Enforce allow-list (OAuth callback already restricts to bot-present + owner/admin)
       if (list.length && !list.includes(gid)) {
-        return res.status(403).json({ ok: false, error: 'NO_GUILD_ACCESS' });
+        return res.status(403).json({ ok: false, error: "NO_GUILD_ACCESS" });
       }
 
       return next();
@@ -218,7 +248,7 @@ function createAuthMiddleware({ jwt, JWT_SECRET, sanitizeId, config }) {
     decodeDashboardToken,
     requireDashboardAuth,
     requirePerm,
-    requireGuildAccess
+    requireGuildAccess,
   };
 }
 

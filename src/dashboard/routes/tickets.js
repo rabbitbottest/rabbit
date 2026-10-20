@@ -1,11 +1,15 @@
 // src/dashboard/routes/tickets.js
 
-const { sendServerError } = require('./_errors');
-const { getGuild, getCachedChannel, resolveChannel } = require('../../services/guildService');
-const { isBotOperator } = require('../botRoles');
+const { sendServerError } = require("./_errors");
+const {
+  getGuild,
+  getCachedChannel,
+  resolveChannel,
+} = require("../../services/guildService");
+const { isBotOperator } = require("../botRoles");
 
 module.exports = {
-  registerTicketsRoutes
+  registerTicketsRoutes,
 };
 
 function registerTicketsRoutes(opts) {
@@ -19,32 +23,38 @@ function registerTicketsRoutes(opts) {
     getActorFromRequest,
     recordAudit,
     _getClient,
-    _getModels
+    _getModels,
   } = opts;
 
-  if (!app) throw new Error('registerTicketsRoutes: app is required');
+  if (!app) throw new Error("registerTicketsRoutes: app is required");
 
-  const canManageTickets = typeof requirePerm === 'function'
-    ? requirePerm({ anyOf: ['canManageTickets'] })
-    : (req, res, next) => next();
+  const canManageTickets =
+    typeof requirePerm === "function"
+      ? requirePerm({ anyOf: ["canManageTickets"] })
+      : (req, res, next) => next();
 
-  const guardGuildQuery = typeof requireGuildAccess === 'function'
-    ? requireGuildAccess({ from: 'query', key: 'guildId' })
-    : (req, res, next) => next();
+  const guardGuildQuery =
+    typeof requireGuildAccess === "function"
+      ? requireGuildAccess({ from: "query", key: "guildId" })
+      : (req, res, next) => next();
 
-  const guardGuildQueryOptional = typeof requireGuildAccess === 'function'
-    ? requireGuildAccess({ from: 'query', key: 'guildId', optional: true })
-    : (req, res, next) => next();
+  const guardGuildQueryOptional =
+    typeof requireGuildAccess === "function"
+      ? requireGuildAccess({ from: "query", key: "guildId", optional: true })
+      : (req, res, next) => next();
 
-  const guardGuildBodyOptional = typeof requireGuildAccess === 'function'
-    ? requireGuildAccess({ from: 'body', key: 'guildId', optional: true })
-    : (req, res, next) => next();
+  const guardGuildBodyOptional =
+    typeof requireGuildAccess === "function"
+      ? requireGuildAccess({ from: "body", key: "guildId", optional: true })
+      : (req, res, next) => next();
 
   function hasGuildAccess(req, guildId) {
     try {
       const u = req && req.dashboardUser;
       if (!u || isBotOperator(u)) return true;
-      const list = Array.isArray(u.allowedGuildIds) ? u.allowedGuildIds.filter(Boolean).map(String) : [];
+      const list = Array.isArray(u.allowedGuildIds)
+        ? u.allowedGuildIds.filter(Boolean).map(String)
+        : [];
       if (!list.length) return true;
       return list.includes(String(guildId));
     } catch {
@@ -57,39 +67,54 @@ function registerTicketsRoutes(opts) {
   // GET /api/tickets?guildId=...&status=open|closed|all&q=...&limit=...&cursor=...
   // -----------------------------
   app.get(
-    '/api/tickets',
+    "/api/tickets",
     requireDashboardAuth,
     canManageTickets,
     guardGuildQuery,
-    rateLimit({ windowMs: 60_000, max: 60, keyPrefix: 'rl:tickets:list:' }),
+    rateLimit({ windowMs: 60_000, max: 60, keyPrefix: "rl:tickets:list:" }),
     async (req, res) => {
       try {
-        const { TicketModel, TicketLogModel } = _getModels ? _getModels() : {};
-        if (!TicketModel) return res.status(503).json({ ok: false, error: 'Ticket model not available' });
+        const { TicketModel } = _getModels ? _getModels() : {};
+        if (!TicketModel)
+          return res
+            .status(503)
+            .json({ ok: false, error: "Ticket model not available" });
 
-        const guildId = (req.query.guildId || '').toString().trim();
-        if (!guildId) return res.status(400).json({ ok: false, error: 'guildId is required' });
+        const guildId = (req.query.guildId || "").toString().trim();
+        if (!guildId)
+          return res
+            .status(400)
+            .json({ ok: false, error: "guildId is required" });
 
-        const statusRaw = (req.query.status || 'open').toString().trim().toLowerCase();
-        const status = statusRaw === 'all' ? 'all' : (statusRaw === 'closed' ? 'closed' : 'open');
-        const q = (req.query.q || '').toString().trim();
-        const cursor = (req.query.cursor || '').toString().trim();
+        const statusRaw = (req.query.status || "open")
+          .toString()
+          .trim()
+          .toLowerCase();
+        const status =
+          statusRaw === "all"
+            ? "all"
+            : statusRaw === "closed"
+              ? "closed"
+              : "open";
+        const q = (req.query.q || "").toString().trim();
+        const cursor = (req.query.cursor || "").toString().trim();
 
         let limit = Number(req.query.limit || 50);
         if (!Number.isFinite(limit) || limit <= 0) limit = 50;
         limit = Math.max(1, Math.min(200, Math.floor(limit)));
 
         const query = { guildId };
-        if (status !== 'all') query.status = status;
+        if (status !== "all") query.status = status;
         const and = [];
 
         if (q) {
           // Basic search: ticketNumber exact, userId exact, username/subject partial
           const or = [];
           const asNum = Number(q);
-          if (Number.isFinite(asNum) && asNum > 0) or.push({ ticketNumber: asNum });
+          if (Number.isFinite(asNum) && asNum > 0)
+            or.push({ ticketNumber: asNum });
           if (/^\d{10,32}$/.test(q)) or.push({ userId: q });
-          const re = new RegExp(escapeRegExp(q), 'i');
+          const re = new RegExp(escapeRegExp(q), "i");
           or.push({ username: re });
           or.push({ subject: re });
           and.push({ $or: or });
@@ -97,15 +122,15 @@ function registerTicketsRoutes(opts) {
 
         // Cursor pagination (deterministic): we sort by createdAt desc, then _id desc.
         if (cursor) {
-          const parts = cursor.split('|');
+          const parts = cursor.split("|");
           const cursorDate = parts[0] ? new Date(parts[0]) : null;
           const cursorId = parts[1] || null;
           if (cursorDate && !Number.isNaN(cursorDate.getTime()) && cursorId) {
             and.push({
               $or: [
                 { createdAt: { $lt: cursorDate } },
-                { createdAt: cursorDate, _id: { $lt: cursorId } }
-              ]
+                { createdAt: cursorDate, _id: { $lt: cursorId } },
+              ],
             });
           } else if (cursorDate && !Number.isNaN(cursorDate.getTime())) {
             query.createdAt = { $lt: cursorDate };
@@ -130,9 +155,9 @@ function registerTicketsRoutes(opts) {
 
         return res.json({ ok: true, items, nextCursor });
       } catch (err) {
-        return sendServerError(res, 'GET /api/tickets', err);
+        return sendServerError(res, "GET /api/tickets", err);
       }
-    }
+    },
   );
 
   // -----------------------------
@@ -141,37 +166,49 @@ function registerTicketsRoutes(opts) {
   // Uses Ticket + TicketLog as a lightweight timeline.
   // -----------------------------
   app.get(
-    '/api/tickets/:ticketId/audit',
+    "/api/tickets/:ticketId/audit",
     requireDashboardAuth,
     canManageTickets,
     guardGuildQueryOptional,
-    rateLimit({ windowMs: 60_000, max: 240, keyPrefix: 'rl:tickets:audit:' }),
+    rateLimit({ windowMs: 60_000, max: 240, keyPrefix: "rl:tickets:audit:" }),
     async (req, res) => {
       try {
         const { TicketModel, TicketLogModel } = _getModels ? _getModels() : {};
-        if (!TicketModel) return res.status(503).json({ ok: false, error: 'Ticket model not available' });
+        if (!TicketModel)
+          return res
+            .status(503)
+            .json({ ok: false, error: "Ticket model not available" });
 
-        const ticketId = (req.params.ticketId || '').toString().trim();
-        if (!ticketId) return res.status(400).json({ ok: false, error: 'ticketId is required' });
+        const ticketId = (req.params.ticketId || "").toString().trim();
+        if (!ticketId)
+          return res
+            .status(400)
+            .json({ ok: false, error: "ticketId is required" });
 
         const ticket = await TicketModel.findById(ticketId).lean();
-        if (!ticket) return res.status(404).json({ ok: false, error: 'Ticket not found' });
+        if (!ticket)
+          return res.status(404).json({ ok: false, error: "Ticket not found" });
 
-        const guildId = (req.query.guildId || ticket.guildId || '').toString().trim();
-        if (!guildId) return res.status(400).json({ ok: false, error: 'guildId is required' });
+        const guildId = (req.query.guildId || ticket.guildId || "")
+          .toString()
+          .trim();
+        if (!guildId)
+          return res
+            .status(400)
+            .json({ ok: false, error: "guildId is required" });
 
         if (!hasGuildAccess(req, guildId)) {
-          return res.status(403).json({ ok: false, error: 'NO_GUILD_ACCESS' });
+          return res.status(403).json({ ok: false, error: "NO_GUILD_ACCESS" });
         }
 
         const items = [];
         // Open event
         if (ticket.createdAt) {
           items.push({
-            action: 'opened',
+            action: "opened",
             createdAt: new Date(ticket.createdAt).toISOString(),
             actorId: ticket.userId || null,
-            actorUsername: ticket.username || null
+            actorUsername: ticket.username || null,
           });
         }
 
@@ -181,7 +218,9 @@ function registerTicketsRoutes(opts) {
         let closedById = ticket.closedById || null;
         if ((!closedAt || !closedByUsername) && TicketLogModel) {
           try {
-            const log = await TicketLogModel.findOne({ $or: [{ ticketId: ticket._id }, { channelId: ticket.channelId }] })
+            const log = await TicketLogModel.findOne({
+              $or: [{ ticketId: ticket._id }, { channelId: ticket.channelId }],
+            })
               .sort({ createdAt: -1 })
               .lean();
             if (log) {
@@ -189,15 +228,15 @@ function registerTicketsRoutes(opts) {
               closedByUsername = closedByUsername || log.closedByUsername;
               closedById = closedById || log.closedById;
             }
-          } catch (e) {}
+          } catch {}
         }
 
         if (closedAt) {
           items.push({
-            action: 'closed',
+            action: "closed",
             createdAt: new Date(closedAt).toISOString(),
             actorId: closedById || null,
-            actorUsername: closedByUsername || null
+            actorUsername: closedByUsername || null,
           });
         }
 
@@ -210,9 +249,9 @@ function registerTicketsRoutes(opts) {
 
         return res.json({ ok: true, items });
       } catch (err) {
-        return sendServerError(res, 'GET /api/tickets/:ticketId/audit', err);
+        return sendServerError(res, "GET /api/tickets/:ticketId/audit", err);
       }
-    }
+    },
   );
 
   // -----------------------------
@@ -221,27 +260,44 @@ function registerTicketsRoutes(opts) {
   // Returns the most recent messages from the ticket thread.
   // -----------------------------
   app.get(
-    '/api/tickets/:ticketId/messages',
+    "/api/tickets/:ticketId/messages",
     requireDashboardAuth,
     canManageTickets,
     guardGuildQueryOptional,
-    rateLimit({ windowMs: 60_000, max: 240, keyPrefix: 'rl:tickets:msgs:' }),
+    rateLimit({ windowMs: 60_000, max: 240, keyPrefix: "rl:tickets:msgs:" }),
     async (req, res) => {
       try {
-        const { TicketModel, TicketLogModel } = _getModels ? _getModels() : {};
-        if (!TicketModel) return res.status(503).json({ ok: false, error: 'Ticket model not available' });
+        const { TicketModel } = _getModels ? _getModels() : {};
+        if (!TicketModel)
+          return res
+            .status(503)
+            .json({ ok: false, error: "Ticket model not available" });
 
-        const ticketId = (req.params.ticketId || '').toString().trim();
-        if (!ticketId) return res.status(400).json({ ok: false, error: 'ticketId is required' });
+        const ticketId = (req.params.ticketId || "").toString().trim();
+        if (!ticketId)
+          return res
+            .status(400)
+            .json({ ok: false, error: "ticketId is required" });
 
         const ticket = await TicketModel.findById(ticketId).lean();
-        if (!ticket) return res.status(404).json({ ok: false, error: 'Ticket not found' });
+        if (!ticket)
+          return res.status(404).json({ ok: false, error: "Ticket not found" });
 
-        const guildId = (req.query.guildId || req.body?.guildId || ticket.guildId || '').toString().trim();
-        if (!guildId) return res.status(400).json({ ok: false, error: 'guildId is required' });
+        const guildId = (
+          req.query.guildId ||
+          req.body?.guildId ||
+          ticket.guildId ||
+          ""
+        )
+          .toString()
+          .trim();
+        if (!guildId)
+          return res
+            .status(400)
+            .json({ ok: false, error: "guildId is required" });
 
         if (!hasGuildAccess(req, guildId)) {
-          return res.status(403).json({ ok: false, error: 'NO_GUILD_ACCESS' });
+          return res.status(403).json({ ok: false, error: "NO_GUILD_ACCESS" });
         }
 
         let limit = Number(req.query.limit || 25);
@@ -249,18 +305,27 @@ function registerTicketsRoutes(opts) {
         limit = Math.max(1, Math.min(50, Math.floor(limit)));
 
         const client = _getClient ? _getClient() : null;
-        if (!client) return res.status(503).json({ ok: false, error: 'Discord client not available' });
+        if (!client)
+          return res
+            .status(503)
+            .json({ ok: false, error: "Discord client not available" });
 
         const guild = getGuild(client, guildId);
-        if (!guild) return res.status(404).json({ ok: false, error: 'Guild not found' });
+        if (!guild)
+          return res.status(404).json({ ok: false, error: "Guild not found" });
 
         const channelId = ticket.channelId;
-        if (!channelId) return res.status(400).json({ ok: false, error: 'Ticket channelId is missing' });
+        if (!channelId)
+          return res
+            .status(400)
+            .json({ ok: false, error: "Ticket channelId is missing" });
 
         // Fetch the thread channel and its recent messages.
         const ch = await resolveChannel(client, guildId, channelId);
-        if (!ch || !ch.messages || typeof ch.messages.fetch !== 'function') {
-          return res.status(404).json({ ok: false, error: 'Ticket thread not accessible' });
+        if (!ch || !ch.messages || typeof ch.messages.fetch !== "function") {
+          return res
+            .status(404)
+            .json({ ok: false, error: "Ticket thread not accessible" });
         }
 
         const msgs = await ch.messages.fetch({ limit });
@@ -269,29 +334,31 @@ function registerTicketsRoutes(opts) {
           // Hide bot/system noise by default so operators see the user's context.
           .filter((m) => {
             if (!m) return false;
-            const raw = (m.content || '').toString().trim();
+            const raw = (m.content || "").toString().trim();
             if (!raw) return false;
 
             // Hide generic bot/system noise, but KEEP dashboard staff replies.
             const isBot = !!(m.author && m.author.bot);
             if (isBot) {
-              const pfxA = 'Resposta da equipa:';
-              const pfxB = '**Resposta da equipa:**';
+              const pfxA = "Resposta da equipa:";
+              const pfxB = "**Resposta da equipa:**";
               return raw.startsWith(pfxA) || raw.startsWith(pfxB);
             }
             return true;
           })
           .map((m) => {
-            const authorUsername = m.author ? (m.author.username || '') : '';
-            const authorId = m.author ? m.author.id : '';
-            const raw = (m.content || '').toString();
-            const pfxA = 'Resposta da equipa:';
-            const pfxB = '**Resposta da equipa:**';
+            const authorUsername = m.author ? m.author.username || "" : "";
+            const authorId = m.author ? m.author.id : "";
+            const raw = (m.content || "").toString();
+            const pfxA = "Resposta da equipa:";
+            const pfxB = "**Resposta da equipa:**";
             const trimmed = raw.trim();
-            const isStaffReply = trimmed.startsWith(pfxA) || trimmed.startsWith(pfxB);
+            const isStaffReply =
+              trimmed.startsWith(pfxA) || trimmed.startsWith(pfxB);
             let rawForDisplay = raw;
             if (isStaffReply) {
-              if (trimmed.startsWith(pfxB)) rawForDisplay = trimmed.slice(pfxB.length).trimStart();
+              if (trimmed.startsWith(pfxB))
+                rawForDisplay = trimmed.slice(pfxB.length).trimStart();
               else rawForDisplay = trimmed.slice(pfxA.length).trimStart();
             }
             const clean = sanitizeText
@@ -304,48 +371,61 @@ function registerTicketsRoutes(opts) {
               isBot: !!(m.author && m.author.bot),
               isStaffReply: !!isStaffReply,
               createdAt: m.createdAt ? m.createdAt.toISOString() : null,
-              content: clean
+              content: clean,
             };
           });
 
         return res.json({ ok: true, items });
       } catch (err) {
-        return sendServerError(res, 'GET /api/tickets/:ticketId/messages', err);
+        return sendServerError(res, "GET /api/tickets/:ticketId/messages", err);
       }
-    }
+    },
   );
 
   // -----------------------------
   // Close/reopen ticket
   // -----------------------------
   app.post(
-    '/api/tickets/:ticketId/close',
+    "/api/tickets/:ticketId/close",
     requireDashboardAuth,
     canManageTickets,
     guardGuildBodyOptional,
     guardGuildQueryOptional,
     // Keep UX smooth: allow normal operator usage without tripping 429 on repeated clicks.
     // Still protected by global /api limiter + per-IP keying.
-    rateLimit({ windowMs: 60_000, max: 120, keyPrefix: 'rl:tickets:close:' }),
+    rateLimit({ windowMs: 60_000, max: 120, keyPrefix: "rl:tickets:close:" }),
     async (req, res) => {
       try {
         const { TicketModel, TicketLogModel } = _getModels ? _getModels() : {};
-        if (!TicketModel) return res.status(503).json({ ok: false, error: 'Ticket model not available' });
+        if (!TicketModel)
+          return res
+            .status(503)
+            .json({ ok: false, error: "Ticket model not available" });
 
-        const ticketId = (req.params.ticketId || '').toString().trim();
-        if (!ticketId) return res.status(400).json({ ok: false, error: 'ticketId is required' });
+        const ticketId = (req.params.ticketId || "").toString().trim();
+        if (!ticketId)
+          return res
+            .status(400)
+            .json({ ok: false, error: "ticketId is required" });
 
         const ticket = await TicketModel.findById(ticketId).lean();
-        if (!ticket) return res.status(404).json({ ok: false, error: 'Ticket not found' });
+        if (!ticket)
+          return res.status(404).json({ ok: false, error: "Ticket not found" });
 
-        const guildId = (req.body?.guildId || ticket.guildId || '').toString().trim();
-        if (!guildId) return res.status(400).json({ ok: false, error: 'guildId is required' });
+        const guildId = (req.body?.guildId || ticket.guildId || "")
+          .toString()
+          .trim();
+        if (!guildId)
+          return res
+            .status(400)
+            .json({ ok: false, error: "guildId is required" });
 
         if (!hasGuildAccess(req, guildId)) {
-          return res.status(403).json({ ok: false, error: 'NO_GUILD_ACCESS' });
+          return res.status(403).json({ ok: false, error: "NO_GUILD_ACCESS" });
         }
 
-        const actor = (getActorFromRequest && getActorFromRequest(req)) || 'dashboard';
+        const actor =
+          (getActorFromRequest && getActorFromRequest(req)) || "dashboard";
         const closedAt = new Date();
 
         // Update DB
@@ -353,199 +433,247 @@ function registerTicketsRoutes(opts) {
           { _id: ticketId },
           {
             $set: {
-              status: 'closed',
+              status: "closed",
               closedAt,
               closedById: actor,
-              closedByUsername: actor
-            }
-          }
+              closedByUsername: actor,
+            },
+          },
         );
 
         // Keep legacy analytics consistent: TicketLog is used by /api/mod/overview.
         if (TicketLogModel) {
           try {
             await TicketLogModel.updateOne(
-              { $or: [{ ticketId: ticketId }, { channelId: ticket.channelId }] },
-              { $set: { closedAt, closedById: actor, closedByUsername: actor } }
+              {
+                $or: [{ ticketId: ticketId }, { channelId: ticket.channelId }],
+              },
+              {
+                $set: { closedAt, closedById: actor, closedByUsername: actor },
+              },
             );
-          } catch (e) {}
+          } catch {}
         }
 
         // Try to archive/lock thread
         const client = _getClient ? _getClient() : null;
         if (client) {
           const ch = getCachedChannel(client, guildId, ticket.channelId);
-          if (ch && typeof ch.setArchived === 'function') {
+          if (ch && typeof ch.setArchived === "function") {
             try {
-              await ch.setLocked(true, 'Closed via dashboard');
-            } catch (e) {}
+              await ch.setLocked(true, "Closed via dashboard");
+            } catch {}
             try {
-              await ch.setArchived(true, 'Closed via dashboard');
-            } catch (e) {}
+              await ch.setArchived(true, "Closed via dashboard");
+            } catch {}
           }
         }
 
         if (recordAudit) {
           await recordAudit({
             req,
-            action: 'ticket.close',
+            action: "ticket.close",
             guildId,
             targetUserId: ticket.userId,
             actor,
-            payload: { ticketId }
+            payload: { ticketId },
           });
         }
 
         return res.json({ ok: true });
       } catch (err) {
-        return sendServerError(res, 'POST /api/tickets/:ticketId/close', err);
+        return sendServerError(res, "POST /api/tickets/:ticketId/close", err);
       }
-    }
+    },
   );
 
   app.post(
-    '/api/tickets/:ticketId/reopen',
+    "/api/tickets/:ticketId/reopen",
     requireDashboardAuth,
     canManageTickets,
     guardGuildBodyOptional,
     guardGuildQueryOptional,
-    rateLimit({ windowMs: 60_000, max: 120, keyPrefix: 'rl:tickets:reopen:' }),
+    rateLimit({ windowMs: 60_000, max: 120, keyPrefix: "rl:tickets:reopen:" }),
     async (req, res) => {
       try {
         const { TicketModel, TicketLogModel } = _getModels ? _getModels() : {};
-        if (!TicketModel) return res.status(503).json({ ok: false, error: 'Ticket model not available' });
+        if (!TicketModel)
+          return res
+            .status(503)
+            .json({ ok: false, error: "Ticket model not available" });
 
-        const ticketId = (req.params.ticketId || '').toString().trim();
-        if (!ticketId) return res.status(400).json({ ok: false, error: 'ticketId is required' });
+        const ticketId = (req.params.ticketId || "").toString().trim();
+        if (!ticketId)
+          return res
+            .status(400)
+            .json({ ok: false, error: "ticketId is required" });
 
         const ticket = await TicketModel.findById(ticketId).lean();
-        if (!ticket) return res.status(404).json({ ok: false, error: 'Ticket not found' });
+        if (!ticket)
+          return res.status(404).json({ ok: false, error: "Ticket not found" });
 
-        const guildId = (req.body?.guildId || ticket.guildId || '').toString().trim();
-        if (!guildId) return res.status(400).json({ ok: false, error: 'guildId is required' });
+        const guildId = (req.body?.guildId || ticket.guildId || "")
+          .toString()
+          .trim();
+        if (!guildId)
+          return res
+            .status(400)
+            .json({ ok: false, error: "guildId is required" });
 
         if (!hasGuildAccess(req, guildId)) {
-          return res.status(403).json({ ok: false, error: 'NO_GUILD_ACCESS' });
+          return res.status(403).json({ ok: false, error: "NO_GUILD_ACCESS" });
         }
 
-        const actor = (getActorFromRequest && getActorFromRequest(req)) || 'dashboard';
+        const actor =
+          (getActorFromRequest && getActorFromRequest(req)) || "dashboard";
 
         await TicketModel.updateOne(
           { _id: ticketId },
           {
             $set: {
-              status: 'open',
+              status: "open",
               closedAt: null,
               closedById: null,
-              closedByUsername: null
-            }
-          }
+              closedByUsername: null,
+            },
+          },
         );
 
         if (TicketLogModel) {
           try {
             await TicketLogModel.updateOne(
-              { $or: [{ ticketId: ticketId }, { channelId: ticket.channelId }] },
-              { $set: { closedAt: null, closedById: null, closedByUsername: null } }
+              {
+                $or: [{ ticketId: ticketId }, { channelId: ticket.channelId }],
+              },
+              {
+                $set: {
+                  closedAt: null,
+                  closedById: null,
+                  closedByUsername: null,
+                },
+              },
             );
-          } catch (e) {}
+          } catch {}
         }
 
         const client = _getClient ? _getClient() : null;
         if (client) {
           const ch = getCachedChannel(client, guildId, ticket.channelId);
-          if (ch && typeof ch.setArchived === 'function') {
+          if (ch && typeof ch.setArchived === "function") {
             try {
-              await ch.setArchived(false, 'Reopened via dashboard');
-            } catch (e) {}
+              await ch.setArchived(false, "Reopened via dashboard");
+            } catch {}
             try {
-              await ch.setLocked(false, 'Reopened via dashboard');
-            } catch (e) {}
+              await ch.setLocked(false, "Reopened via dashboard");
+            } catch {}
           }
         }
 
         if (recordAudit) {
           await recordAudit({
             req,
-            action: 'ticket.reopen',
+            action: "ticket.reopen",
             guildId,
             targetUserId: ticket.userId,
             actor,
-            payload: { ticketId }
+            payload: { ticketId },
           });
         }
 
         return res.json({ ok: true });
       } catch (err) {
-        return sendServerError(res, 'POST /api/tickets/:ticketId/reopen', err);
+        return sendServerError(res, "POST /api/tickets/:ticketId/reopen", err);
       }
-    }
+    },
   );
 
   // Reply to a ticket from the dashboard
   app.post(
-    '/api/tickets/:ticketId/reply',
+    "/api/tickets/:ticketId/reply",
     requireDashboardAuth,
     canManageTickets,
     guardGuildBodyOptional,
     guardGuildQueryOptional,
-    rateLimit({ windowMs: 60_000, max: 240, keyPrefix: 'rl:tickets:reply:' }),
+    rateLimit({ windowMs: 60_000, max: 240, keyPrefix: "rl:tickets:reply:" }),
     async (req, res) => {
       try {
         const { TicketModel } = _getModels ? _getModels() : {};
         if (!TicketModel) {
-          return res.status(503).json({ ok: false, error: 'Ticket model not available' });
+          return res
+            .status(503)
+            .json({ ok: false, error: "Ticket model not available" });
         }
 
-        const ticketId = (req.params.ticketId || '').toString().trim();
-        const rawGuildId = (req.body?.guildId || '').toString().trim();
-        const content = sanitizeText ? sanitizeText(req.body?.content || '', { maxLen: 2000, stripHtml: true }) : (req.body?.content || '').toString().slice(0, 2000);
+        const ticketId = (req.params.ticketId || "").toString().trim();
+        const rawGuildId = (req.body?.guildId || "").toString().trim();
+        const content = sanitizeText
+          ? sanitizeText(req.body?.content || "", {
+              maxLen: 2000,
+              stripHtml: true,
+            })
+          : (req.body?.content || "").toString().slice(0, 2000);
 
         if (!ticketId) {
-          return res.status(400).json({ ok: false, error: 'ticketId is required' });
+          return res
+            .status(400)
+            .json({ ok: false, error: "ticketId is required" });
         }
         if (!content) {
-          return res.status(400).json({ ok: false, error: 'content is required' });
+          return res
+            .status(400)
+            .json({ ok: false, error: "content is required" });
         }
 
         const ticket = await TicketModel.findById(ticketId).lean();
         if (!ticket) {
-          return res.status(404).json({ ok: false, error: 'Ticket not found' });
+          return res.status(404).json({ ok: false, error: "Ticket not found" });
         }
 
-        const guildId = rawGuildId || (ticket.guildId || '');
+        const guildId = rawGuildId || ticket.guildId || "";
         if (!guildId) {
-          return res.status(400).json({ ok: false, error: 'guildId is required' });
+          return res
+            .status(400)
+            .json({ ok: false, error: "guildId is required" });
         }
 
         if (!hasGuildAccess(req, guildId)) {
-          return res.status(403).json({ ok: false, error: 'NO_GUILD_ACCESS' });
+          return res.status(403).json({ ok: false, error: "NO_GUILD_ACCESS" });
         }
 
         const client = _getClient ? _getClient() : null;
         if (!client) {
-          return res.status(503).json({ ok: false, error: 'Client not available' });
+          return res
+            .status(503)
+            .json({ ok: false, error: "Client not available" });
         }
 
         const guild = getGuild(client, guildId);
         if (!guild) {
-          return res.status(404).json({ ok: false, error: 'Guild not found' });
+          return res.status(404).json({ ok: false, error: "Guild not found" });
         }
 
         const channelId = ticket.channelId;
         if (!channelId) {
-          return res.status(404).json({ ok: false, error: 'Ticket channel not found' });
+          return res
+            .status(404)
+            .json({ ok: false, error: "Ticket channel not found" });
         }
 
-        const channel = resolveChannel(client, guildId, channelId, { fetch: false });
+        const channel = resolveChannel(client, guildId, channelId, {
+          fetch: false,
+        });
         if (!channel || !channel.isTextBased?.()) {
-          return res.status(404).json({ ok: false, error: 'Ticket channel not found or not text-based' });
+          return res.status(404).json({
+            ok: false,
+            error: "Ticket channel not found or not text-based",
+          });
         }
 
-        const actor = (getActorFromRequest && getActorFromRequest(req)) || 'dashboard';
+        const actor =
+          (getActorFromRequest && getActorFromRequest(req)) || "dashboard";
         // Make staff replies visually distinct in Discord while still allowing the dashboard
         // to detect and show them (see /messages filtering).
-        const prefix = '**Resposta da equipa:**';
+        const prefix = "**Resposta da equipa:**";
 
         await channel.send(`${prefix}\n${content}`);
 
@@ -557,33 +685,36 @@ function registerTicketsRoutes(opts) {
                 lastMessageAt: new Date(),
                 lastResponderId: actor,
                 lastResponderName: actor,
-                lastResponderAt: new Date()
-              }
-            }
+                lastResponderAt: new Date(),
+              },
+            },
           );
         } catch (e) {
-          console.warn('[Dashboard] Failed to update ticket lastMessageAt:', e?.message || e);
+          console.warn(
+            "[Dashboard] Failed to update ticket lastMessageAt:",
+            e?.message || e,
+          );
         }
 
         if (recordAudit) {
           await recordAudit({
             req,
-            action: 'ticket.reply',
+            action: "ticket.reply",
             guildId,
             targetUserId: ticket.userId,
             actor,
-            payload: { ticketId }
+            payload: { ticketId },
           });
         }
 
         return res.json({ ok: true });
       } catch (err) {
-        return sendServerError(res, '/api/tickets/:ticketId/reply', err);
+        return sendServerError(res, "/api/tickets/:ticketId/reply", err);
       }
-    }
+    },
   );
 }
 
 function escapeRegExp(s) {
-  return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }

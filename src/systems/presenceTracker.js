@@ -10,15 +10,24 @@ function nowDate() {
 }
 
 function statusOf(presence) {
-  const s = presence && typeof presence.status === 'string' ? presence.status : 'offline';
-  return s || 'offline';
+  const s =
+    presence && typeof presence.status === "string"
+      ? presence.status
+      : "offline";
+  return s || "offline";
 }
 
-async function closeOpenSessions(PresenceSession, guildId, userId, endAt, lastStatus) {
+async function closeOpenSessions(
+  PresenceSession,
+  guildId,
+  userId,
+  endAt,
+  lastStatus,
+) {
   try {
     await PresenceSession.updateMany(
       { guildId, userId, endAt: null },
-      { $set: { endAt, lastStatus: lastStatus || 'offline' } }
+      { $set: { endAt, lastStatus: lastStatus || "offline" } },
     ).exec();
   } catch {
     // ignore
@@ -35,7 +44,7 @@ async function openSession(PresenceSession, guildId, user, status) {
       userId: user.id,
       isBot: Boolean(user.bot),
       startAt: endAt,
-      lastStatus: status || 'online'
+      lastStatus: status || "online",
     });
   } catch (e) {
     // If a session already exists (race), just ignore.
@@ -48,7 +57,7 @@ async function updateLastStatus(PresenceSession, guildId, userId, status) {
   try {
     await PresenceSession.updateMany(
       { guildId, userId, endAt: null },
-      { $set: { lastStatus: status } }
+      { $set: { lastStatus: status } },
     ).exec();
   } catch {
     // ignore
@@ -58,7 +67,9 @@ async function updateLastStatus(PresenceSession, guildId, userId, status) {
 async function bootstrapGuild(client, guild, PresenceSession) {
   try {
     // Best-effort: fetch members with presences (may fail on large guilds).
-    const members = await guild.members.fetch({ withPresences: true }).catch(() => null);
+    const members = await guild.members
+      .fetch({ withPresences: true })
+      .catch(() => null);
     if (!members) return;
 
     const ts = nowDate();
@@ -68,7 +79,7 @@ async function bootstrapGuild(client, guild, PresenceSession) {
       try {
         if (!m || !m.user || m.user.bot) return;
         const st = statusOf(m.presence);
-        if (st === 'offline') return;
+        if (st === "offline") return;
         ops.push({ guildId: guild.id, user: m.user, status: st });
       } catch {}
     });
@@ -77,13 +88,19 @@ async function bootstrapGuild(client, guild, PresenceSession) {
     for (const it of ops) {
       try {
         // Close any existing open sessions then open a fresh one (restart-safe).
-        await closeOpenSessions(PresenceSession, it.guildId, it.user.id, ts, it.status);
+        await closeOpenSessions(
+          PresenceSession,
+          it.guildId,
+          it.user.id,
+          ts,
+          it.status,
+        );
         await PresenceSession.create({
           guildId: it.guildId,
           userId: it.user.id,
           isBot: Boolean(it.user.bot),
           startAt: ts,
-          lastStatus: it.status
+          lastStatus: it.status,
         }).catch((e) => {
           if (e && e.code === 11000) return;
           throw e;
@@ -101,16 +118,19 @@ function startPresenceTracker(client, opts = {}) {
 
   let PresenceSession = null;
   try {
-    PresenceSession = require('../database/models/PresenceSession');
+    PresenceSession = require("../database/models/PresenceSession");
   } catch (e) {
-    console.warn('[Presence] PresenceSession model not available:', e?.message || e);
+    console.warn(
+      "[Presence] PresenceSession model not available:",
+      e?.message || e,
+    );
     return;
   }
 
   const bootstrap = opts.bootstrapOnReady !== false;
 
   // Track updates
-  client.on('presenceUpdate', async (oldPresence, newPresence) => {
+  client.on("presenceUpdate", async (oldPresence, newPresence) => {
     try {
       const presence = newPresence || oldPresence;
       const guildId = presence?.guild?.id;
@@ -120,17 +140,23 @@ function startPresenceTracker(client, opts = {}) {
       const oldStatus = statusOf(oldPresence);
       const newStatus = statusOf(newPresence);
 
-      if (oldStatus === 'offline' && newStatus !== 'offline') {
+      if (oldStatus === "offline" && newStatus !== "offline") {
         await openSession(PresenceSession, guildId, user, newStatus);
         return;
       }
 
-      if (oldStatus !== 'offline' && newStatus === 'offline') {
-        await closeOpenSessions(PresenceSession, guildId, user.id, nowDate(), 'offline');
+      if (oldStatus !== "offline" && newStatus === "offline") {
+        await closeOpenSessions(
+          PresenceSession,
+          guildId,
+          user.id,
+          nowDate(),
+          "offline",
+        );
         return;
       }
 
-      if (newStatus !== 'offline') {
+      if (newStatus !== "offline") {
         await updateLastStatus(PresenceSession, guildId, user.id, newStatus);
       }
     } catch {
@@ -140,7 +166,7 @@ function startPresenceTracker(client, opts = {}) {
 
   // Best-effort bootstrap on ready (helps after restarts)
   if (bootstrap) {
-    client.once('clientReady', async () => {
+    client.once("clientReady", async () => {
       try {
         for (const guild of client.guilds.cache.values()) {
           await bootstrapGuild(client, guild, PresenceSession);
@@ -151,7 +177,7 @@ function startPresenceTracker(client, opts = {}) {
     });
   }
 
-  console.log('[Presence] Presence tracker started');
+  console.log("[Presence] Presence tracker started");
 }
 
 module.exports = { startPresenceTracker };

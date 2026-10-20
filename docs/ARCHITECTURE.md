@@ -57,6 +57,7 @@ Esta nota resume a arquitetura atual do bot, para facilitar manutenção e evolu
 3. A dashboard obtém os logs via `/api/logs` e renderiza no front-end com `createLogRow()` + `renderLogs()`.
 
 Benefícios:
+
 - A dashboard é rápida (lê da cache de memória).
 - Em caso de erro na cache, é possível cair para Mongo sem perder histórico.
 

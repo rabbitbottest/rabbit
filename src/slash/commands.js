@@ -1,211 +1,218 @@
 // src/slash/commands.js
 
-const { SlashCommandBuilder } = require('discord.js');
+const { SlashCommandBuilder } = require("discord.js");
 
-module.exports = function buildSlashCommands(prefix) {
-  const p = prefix || '!';
-
+module.exports = function buildSlashCommands(_prefix) {
   const warn = new SlashCommandBuilder()
-    .setName('warn')
-    .setDescription('Warn a member and register an infraction')
+    .setName("warn")
+    .setDescription("Warn a member and register an infraction")
     .setDescriptionLocalizations({
-      'pt-BR': 'Aplicar um aviso a um membro e registar uma infração',
+      "pt-BR": "Aplicar um aviso a um membro e registar uma infração",
     })
     .addUserOption((opt) =>
       opt
-        .setName('user')
-        .setDescription('User to warn')
+        .setName("user")
+        .setDescription("User to warn")
         .setDescriptionLocalizations({
-          'pt-BR': 'Utilizador a avisar',
+          "pt-BR": "Utilizador a avisar",
         })
-        .setRequired(true)
+        .setRequired(true),
     )
     .addStringOption((opt) =>
       opt
-        .setName('reason')
-        .setDescription('Reason')
+        .setName("reason")
+        .setDescription("Reason")
         .setDescriptionLocalizations({
-          'pt-BR': 'Motivo',
+          "pt-BR": "Motivo",
         })
-        .setRequired(false)
+        .setRequired(false),
     );
 
   const mute = new SlashCommandBuilder()
-    .setName('mute')
-    .setDescription('Temporarily mute a member')
+    .setName("mute")
+    .setDescription("Temporarily mute a member")
     .setDescriptionLocalizations({
-      'pt-BR': 'Silenciar temporariamente um membro',
+      "pt-BR": "Silenciar temporariamente um membro",
     })
     .addUserOption((opt) =>
       opt
-        .setName('user')
-        .setDescription('User to mute')
+        .setName("user")
+        .setDescription("User to mute")
         .setDescriptionLocalizations({
-          'pt-BR': 'Utilizador a silenciar',
+          "pt-BR": "Utilizador a silenciar",
         })
-        .setRequired(true)
+        .setRequired(true),
     )
     .addStringOption((opt) =>
       opt
-        .setName('duration')
-        .setDescription('Duration (e.g. 10m, 1h, 1d)')
+        .setName("duration")
+        .setDescription("Duration (e.g. 10m, 1h, 1d)")
         .setDescriptionLocalizations({
-          'pt-BR': 'Duração (ex.: 10m, 1h, 1d)',
+          "pt-BR": "Duração (ex.: 10m, 1h, 1d)",
         })
-        .setRequired(true)
+        .setRequired(true),
     )
     .addStringOption((opt) =>
       opt
-        .setName('reason')
-        .setDescription('Reason')
+        .setName("reason")
+        .setDescription("Reason")
         .setDescriptionLocalizations({
-          'pt-BR': 'Motivo',
+          "pt-BR": "Motivo",
         })
-        .setRequired(false)
+        .setRequired(false),
     );
 
   const unmute = new SlashCommandBuilder()
-    .setName('unmute')
-    .setDescription('Remove an active mute from a member')
+    .setName("unmute")
+    .setDescription("Remove an active mute from a member")
     .setDescriptionLocalizations({
-      'pt-BR': 'Remover um mute ativo de um membro',
+      "pt-BR": "Remover um mute ativo de um membro",
     })
     .addUserOption((opt) =>
       opt
-        .setName('user')
-        .setDescription('User to unmute')
+        .setName("user")
+        .setDescription("User to unmute")
         .setDescriptionLocalizations({
-          'pt-BR': 'Utilizador a desmutar',
+          "pt-BR": "Utilizador a desmutar",
         })
-        .setRequired(true)
+        .setRequired(true),
     );
 
   const clear = new SlashCommandBuilder()
-    .setName('clear')
-    .setDescription('Bulk delete a number of recent messages in this channel')
+    .setName("clear")
+    .setDescription("Bulk delete a number of recent messages in this channel")
     .setDescriptionLocalizations({
-      'pt-BR': 'Apagar em massa um número de mensagens recentes neste canal',
+      "pt-BR": "Apagar em massa um número de mensagens recentes neste canal",
     })
     .addIntegerOption((opt) =>
       opt
-        .setName('amount')
-        .setDescription('Number of messages to delete (max 100)')
+        .setName("amount")
+        .setDescription("Number of messages to delete (max 100)")
         .setDescriptionLocalizations({
-          'pt-BR': 'Número de mensagens a apagar (máx. 100)',
+          "pt-BR": "Número de mensagens a apagar (máx. 100)",
         })
-        .setRequired(true)
+        .setRequired(true),
     );
 
   const userinfo = new SlashCommandBuilder()
-    .setName('userinfo')
-    .setDescription('Show basic information about a member')
+    .setName("userinfo")
+    .setDescription("Show basic information about a member")
     .setDescriptionLocalizations({
-      'pt-BR': 'Mostrar informação básica sobre um membro',
+      "pt-BR": "Mostrar informação básica sobre um membro",
     })
     .addUserOption((opt) =>
       opt
-        .setName('user')
-        .setDescription('User to inspect')
+        .setName("user")
+        .setDescription("User to inspect")
         .setDescriptionLocalizations({
-          'pt-BR': 'Utilizador a inspecionar',
+          "pt-BR": "Utilizador a inspecionar",
         })
-        .setRequired(false)
+        .setRequired(false),
     );
 
   const history = new SlashCommandBuilder()
-    .setName('history')
-    .setDescription('Show moderation history for a member')
+    .setName("history")
+    .setDescription("Show moderation history for a member")
     .setDescriptionLocalizations({
-      'pt-BR': 'Mostrar histórico de moderação de um membro',
+      "pt-BR": "Mostrar histórico de moderação de um membro",
     })
     .addUserOption((opt) =>
       opt
-        .setName('user')
-        .setDescription('User to inspect')
+        .setName("user")
+        .setDescription("User to inspect")
         .setDescriptionLocalizations({
-          'pt-BR': 'Utilizador a inspecionar',
+          "pt-BR": "Utilizador a inspecionar",
         })
-        .setRequired(true)
+        .setRequired(true),
     )
     .addIntegerOption((opt) =>
       opt
-        .setName('limit')
-        .setDescription('Number of entries to show (max 50)')
+        .setName("limit")
+        .setDescription("Number of entries to show (max 50)")
         .setDescriptionLocalizations({
-          'pt-BR': 'Número de registos a mostrar (máx. 50)',
+          "pt-BR": "Número de registos a mostrar (máx. 50)",
         })
         .setMinValue(1)
         .setMaxValue(50)
-        .setRequired(false)
+        .setRequired(false),
     );
 
   const help = new SlashCommandBuilder()
-    .setName('help')
-    .setDescription('Show help and a summary of available commands')
+    .setName("help")
+    .setDescription("Show help and a summary of available commands")
     .setDescriptionLocalizations({
-      'pt-BR': 'Mostrar ajuda e um resumo dos comandos disponíveis',
+      "pt-BR": "Mostrar ajuda e um resumo dos comandos disponíveis",
     });
 
   const poll = new SlashCommandBuilder()
-    .setName('poll')
-    .setDescription('Create a poll with several options')
+    .setName("poll")
+    .setDescription("Create a poll with several options")
     .setDescriptionLocalizations({
-      'pt-BR': 'Criar uma enquete com várias opções',
+      "pt-BR": "Criar uma enquete com várias opções",
     })
     .addStringOption((opt) =>
       opt
-        .setName('question')
-        .setDescription('Poll question')
+        .setName("question")
+        .setDescription("Poll question")
         .setDescriptionLocalizations({
-          'pt-BR': 'Pergunta da enquete',
+          "pt-BR": "Pergunta da enquete",
         })
-        .setRequired(true)
+        .setRequired(true),
     )
     .addStringOption((opt) =>
       opt
-        .setName('options')
-        .setDescription('Options separated by | (max 10)')
+        .setName("options")
+        .setDescription("Options separated by | (max 10)")
         .setDescriptionLocalizations({
-          'pt-BR': 'Opções separadas por | (máx. 10)',
+          "pt-BR": "Opções separadas por | (máx. 10)",
         })
-        .setRequired(true)
+        .setRequired(true),
     );
 
   const rank = new SlashCommandBuilder()
-    .setName('rank')
-    .setDescription('Show the level/XP rank of a member')
+    .setName("rank")
+    .setDescription("Show the level/XP rank of a member")
     .setDescriptionLocalizations({
-      'pt-BR': 'Mostrar o nível/XP de um membro',
+      "pt-BR": "Mostrar o nível/XP de um membro",
     })
     .addUserOption((opt) =>
       opt
-        .setName('user')
-        .setDescription('User to inspect')
+        .setName("user")
+        .setDescription("User to inspect")
         .setDescriptionLocalizations({
-          'pt-BR': 'Utilizador a inspecionar',
+          "pt-BR": "Utilizador a inspecionar",
         })
-        .setRequired(false)
+        .setRequired(false),
     );
 
   const leaderboard = new SlashCommandBuilder()
-    .setName('leaderboard')
-    .setDescription('Show the XP leaderboard for this server')
+    .setName("leaderboard")
+    .setDescription("Show the XP leaderboard for this server")
     .setDescriptionLocalizations({
-      'pt-BR': 'Mostrar a tabela de XP deste servidor',
+      "pt-BR": "Mostrar a tabela de XP deste servidor",
     })
     .addIntegerOption((opt) =>
       opt
-        .setName('limit')
-        .setDescription('Number of entries to show (max 25)')
+        .setName("limit")
+        .setDescription("Number of entries to show (max 25)")
         .setDescriptionLocalizations({
-          'pt-BR': 'Número de entradas a mostrar (máx. 25)',
+          "pt-BR": "Número de entradas a mostrar (máx. 25)",
         })
         .setMinValue(1)
         .setMaxValue(25)
-        .setRequired(false)
+        .setRequired(false),
     );
 
-  return [warn, mute, unmute, clear, userinfo, history, help, poll, rank, leaderboard].map((c) =>
-    c.toJSON()
-  );
+  return [
+    warn,
+    mute,
+    unmute,
+    clear,
+    userinfo,
+    history,
+    help,
+    poll,
+    rank,
+    leaderboard,
+  ].map((c) => c.toJSON());
 };

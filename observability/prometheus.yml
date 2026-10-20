@@ -18,9 +18,9 @@ scrape_configs:
     scheme: http
     metrics_path: /api/internal/metrics
     params:
-      format: ['prometheus']
+      format: ["prometheus"]
     authorization:
       type: Bearer
-      credentials: '${METRICS_TOKEN}'
+      credentials: "${METRICS_TOKEN}"
     static_configs:
-      - targets: ['${BOT_METRICS_TARGET}']
+      - targets: ["${BOT_METRICS_TARGET}"]

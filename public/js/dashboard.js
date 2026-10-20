@@ -1,45 +1,57 @@
 (function () {
-  'use strict';
+  "use strict";
 
   function clearInlineError(el) {
-      if (!el) return;
-      el.classList.remove('input-error');
-      // remove adjacent error node created by setInlineError
-      var next = el.nextElementSibling;
-      if (next && next.classList && next.classList.contains('field-error') && next.dataset && next.dataset.for === el.id) {
-        next.remove();
-      }
+    if (!el) return;
+    el.classList.remove("input-error");
+    // remove adjacent error node created by setInlineError
+    var next = el.nextElementSibling;
+    if (
+      next &&
+      next.classList &&
+      next.classList.contains("field-error") &&
+      next.dataset &&
+      next.dataset.for === el.id
+    ) {
+      next.remove();
     }
+  }
 
-    function setInlineError(el, msg) {
-      if (!el) return;
-      el.classList.add('input-error');
-      var next = el.nextElementSibling;
-      if (next && next.classList && next.classList.contains('field-error') && next.dataset && next.dataset.for === el.id) {
-        next.textContent = msg || '';
-        return;
-      }
-      var div = document.createElement('div');
-      div.className = 'field-error';
-      div.dataset.for = el.id;
-      div.textContent = msg || '';
-      el.insertAdjacentElement('afterend', div);
+  function setInlineError(el, msg) {
+    if (!el) return;
+    el.classList.add("input-error");
+    var next = el.nextElementSibling;
+    if (
+      next &&
+      next.classList &&
+      next.classList.contains("field-error") &&
+      next.dataset &&
+      next.dataset.for === el.id
+    ) {
+      next.textContent = msg || "";
+      return;
     }
+    var div = document.createElement("div");
+    div.className = "field-error";
+    div.dataset.for = el.id;
+    div.textContent = msg || "";
+    el.insertAdjacentElement("afterend", div);
+  }
 
-    function clearInlineErrors(ids) {
-      (ids || []).forEach(function (id) {
-        clearInlineError(document.getElementById(id));
-      });
-    }
+  function clearInlineErrors(ids) {
+    (ids || []).forEach(function (id) {
+      clearInlineError(document.getElementById(id));
+    });
+  }
 
   // Global namespace for multi-file-friendly dashboard
   window.OzarkDashboard = window.OzarkDashboard || {};
 
   const state = {
-    lang: 'pt',
+    lang: "pt",
     guildId: null,
     guildsLoaded: false,
-    currentTab: 'overview',
+    currentTab: "overview",
     guilds: [],
     me: null,
     perms: {},
@@ -47,27 +59,29 @@
     trustLastSavedAt: null,
     currentTrustConfig: null,
     trustExtraOverride: null,
-    theme: 'dark',
-    density: 'comfortable'
+    theme: "dark",
+    density: "comfortable",
   };
 
-  
   function formatDateTime(ts) {
-    if (!ts) return '—';
+    if (!ts) return "—";
     try {
       const d = new Date(ts);
-      if (Number.isNaN(d.getTime())) return '—';
+      if (Number.isNaN(d.getTime())) return "—";
       const opts = {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit'
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
       };
       const tz = state && state.guildTimezone ? state.guildTimezone : undefined;
-      const lang = state && state.lang ? state.lang : 'pt';
-      return new Intl.DateTimeFormat(lang === 'en' ? 'en-GB' : 'pt-PT', tz ? Object.assign({ timeZone: tz }, opts) : opts).format(d);
+      const lang = state && state.lang ? state.lang : "pt";
+      return new Intl.DateTimeFormat(
+        lang === "en" ? "en-GB" : "pt-PT",
+        tz ? Object.assign({ timeZone: tz }, opts) : opts,
+      ).format(d);
     } catch {
       try {
         return new Date(ts).toLocaleString();
@@ -77,62 +91,65 @@
     }
   }
 
-const API_BASE = '/api';
-  const GUILD_KEY = 'DASHBOARD_GUILD_ID';
+  const API_BASE = "/api";
+  const GUILD_KEY = "DASHBOARD_GUILD_ID";
 
   function getBrowserLanguage() {
     var languages = [];
     try {
-      languages = Array.isArray(navigator.languages) ? navigator.languages.slice() : [];
+      languages = Array.isArray(navigator.languages)
+        ? navigator.languages.slice()
+        : [];
       if (navigator.language) languages.push(navigator.language);
     } catch {}
     for (var i = 0; i < languages.length; i++) {
-      var language = String(languages[i] || '').toLowerCase().split('-')[0];
-      if (language === 'en' || language === 'pt') return language;
+      var language = String(languages[i] || "")
+        .toLowerCase()
+        .split("-")[0];
+      if (language === "en" || language === "pt") return language;
     }
-    return 'pt';
+    return "pt";
   }
 
   state.lang = getBrowserLanguage();
-
 
   // Clean up the "selectGuild" hint left by the OAuth callback.
   // The session token itself lives in an HttpOnly cookie set by the backend,
   // so it is never read from or written to localStorage.
   try {
-    const params = new URLSearchParams(window.location.search || '');
-    if (params.has('selectGuild')) {
-      if (params.get('selectGuild') === '1') {
-        try { localStorage.removeItem(GUILD_KEY); } catch (e) {}
+    const params = new URLSearchParams(window.location.search || "");
+    if (params.has("selectGuild")) {
+      if (params.get("selectGuild") === "1") {
+        try {
+          localStorage.removeItem(GUILD_KEY);
+        } catch {}
       }
-      params.delete('selectGuild');
-      params.delete('token');
+      params.delete("selectGuild");
+      params.delete("token");
       const qs = params.toString();
-      const newUrl = window.location.pathname + (qs ? ('?' + qs) : '') + window.location.hash;
+      const newUrl =
+        window.location.pathname + (qs ? "?" + qs : "") + window.location.hash;
       window.history.replaceState({}, document.title, newUrl);
     }
-  } catch (e) {}
-
+  } catch {}
 
   // -----------------------------
   // Small helpers
   // -----------------------------
 
-  
   function getStoredGuildId() {
     try {
-      return localStorage.getItem(GUILD_KEY) || '';
-    } catch (e) {
-      return '';
+      return localStorage.getItem(GUILD_KEY) || "";
+    } catch {
+      return "";
     }
   }
 
   function setStoredGuildId(guildId) {
     try {
       if (guildId) localStorage.setItem(GUILD_KEY, guildId);
-    } catch (e) {}
+    } catch {}
   }
-
 
   // For Discord OAuth sessions, mint a "server-scoped" session after the user selects a guild.
   // The token never touches the frontend: the backend stores it in an HttpOnly cookie.
@@ -143,29 +160,35 @@ const API_BASE = '/api';
       state.me &&
       state.me.selectedGuildId === guildId &&
       state.me.profile &&
-      state.me.profile !== 'UNSCOPED'
+      state.me.profile !== "UNSCOPED"
     ) {
       return true;
     }
 
     try {
-      const res = await apiPost('/auth/select-guild', { guildId: guildId });
+      const res = await apiPost("/auth/select-guild", { guildId: guildId });
       if (res && res.ok) {
         await loadMe().catch(function () {});
         return true;
       }
-      toast(t('guild_select_error_access'), { type: 'error' });
+      toast(t("guild_select_error_access"), { type: "error" });
       return false;
     } catch (e) {
-      if (e && (e.apiMessage === 'BOT_NOT_INSTALLED' || e.message === 'BOT_NOT_INSTALLED')) {
-        toast(t('bot_not_installed'), { type: 'error' });
+      if (
+        e &&
+        (e.apiMessage === "BOT_NOT_INSTALLED" ||
+          e.message === "BOT_NOT_INSTALLED")
+      ) {
+        toast(t("bot_not_installed"), { type: "error" });
         return false;
       }
-      toast((e && e.apiMessage) ? e.apiMessage : t('guild_select_error_generic'), { type: 'error' });
+      toast(
+        e && e.apiMessage ? e.apiMessage : t("guild_select_error_generic"),
+        { type: "error" },
+      );
       return false;
     }
   }
-
 
   // Authentication is carried by the HttpOnly session cookie, sent automatically
   // on same-origin requests, so no auth headers are needed here.
@@ -173,19 +196,21 @@ const API_BASE = '/api';
     return {};
   }
 
-
-
   async function forceLogout(opts) {
     try {
       // Server-side logout clears HttpOnly cookies (cannot be cleared from JS directly).
-      await fetch(API_BASE + '/auth/logout', { method: 'POST', credentials: 'same-origin' });
+      await fetch(API_BASE + "/auth/logout", {
+        method: "POST",
+        credentials: "same-origin",
+      });
     } catch {}
     try {
-      if (typeof window.OzarkDashboard.showLogin === 'function') window.OzarkDashboard.showLogin();
+      if (typeof window.OzarkDashboard.showLogin === "function")
+        window.OzarkDashboard.showLogin();
     } catch {}
     try {
       if (opts && opts.redirect) {
-        window.location.replace('/');
+        window.location.replace("/");
       }
     } catch {}
   }
@@ -193,7 +218,7 @@ const API_BASE = '/api';
   function handleAuthError(status, payload) {
     if (status === 401) {
       const code = payload && (payload.error || payload.code);
-      if (code === 'REAUTH_REQUIRED') {
+      if (code === "REAUTH_REQUIRED") {
         // Recover from stale tokens/cookies by forcing a server-side logout.
         forceLogout();
         return;
@@ -201,9 +226,10 @@ const API_BASE = '/api';
       try {
         // Sessão expirada ou token inválido: mostra o ecrã de login.
         // Evitamos reload em loop (especialmente quando o token está num cookie HttpOnly).
-        if (typeof window.OzarkDashboard.showLogin === 'function') window.OzarkDashboard.showLogin();
+        if (typeof window.OzarkDashboard.showLogin === "function")
+          window.OzarkDashboard.showLogin();
       } catch (e) {
-        console.error('Failed to show login after 401', e);
+        console.error("Failed to show login after 401", e);
       }
     }
   }
@@ -221,7 +247,7 @@ const API_BASE = '/api';
   async function readJsonSafe(res) {
     try {
       return await res.json();
-    } catch (e) {
+    } catch {
       return null;
     }
   }
@@ -231,7 +257,7 @@ const API_BASE = '/api';
     const headers = Object.assign({}, getAuthHeaders());
     const init = { method: method, headers: headers, signal: opts.signal };
     if (body !== undefined && body !== null) {
-      headers['Content-Type'] = 'application/json';
+      headers["Content-Type"] = "application/json";
       init.body = JSON.stringify(body);
     }
     const res = await fetch(API_BASE + path, init);
@@ -253,20 +279,28 @@ const API_BASE = '/api';
 
     async function fetchWithRetry(attempt) {
       const res = await fetch(API_BASE + path, {
-        method: 'GET',
+        method: "GET",
         headers: getAuthHeaders(),
-        signal: opts.signal
+        signal: opts.signal,
       });
 
       if (!res.ok) {
         // Retry only for transient GET failures.
-        const retriable = res.status === 429 || res.status === 502 || res.status === 503 || res.status === 504;
+        const retriable =
+          res.status === 429 ||
+          res.status === 502 ||
+          res.status === 503 ||
+          res.status === 504;
         if (retriable && attempt < 2) {
           let waitMs = 0;
-          const ra = res.headers && res.headers.get ? res.headers.get('retry-after') : null;
+          const ra =
+            res.headers && res.headers.get
+              ? res.headers.get("retry-after")
+              : null;
           if (res.status === 429 && ra) {
             const sec = Number(ra);
-            if (Number.isFinite(sec) && sec > 0) waitMs = Math.min(10_000, sec * 1000);
+            if (Number.isFinite(sec) && sec > 0)
+              waitMs = Math.min(10_000, sec * 1000);
           }
           if (!waitMs) {
             waitMs = (res.status === 429 ? 900 : 400) * Math.pow(2, attempt);
@@ -290,32 +324,34 @@ const API_BASE = '/api';
   }
 
   async function apiPost(path, body, options) {
-    return apiRequest('POST', path, body, options);
+    return apiRequest("POST", path, body, options);
   }
 
   async function apiPatch(path, body, options) {
-    return apiRequest('PATCH', path, body, options);
+    return apiRequest("PATCH", path, body, options);
   }
 
   function createLogRow(log) {
-    const row = document.createElement('div');
-    row.className = 'list-item';
+    const row = document.createElement("div");
+    row.className = "list-item";
 
     // Título simples; cai para i18n ou "Log" se não existir
-    const fallbackTitle = (typeof t === 'function' && t('logs_default_title')) || 'Log';
+    const fallbackTitle =
+      (typeof t === "function" && t("logs_default_title")) || "Log";
     const title = log.title || fallbackTitle;
 
     // Linha meta: utilizador, moderador, data/hora (localizada)
     const metaParts = [];
 
-    const userLabel = (typeof t === 'function' && t('logs_user_label')) || 'User';
-    const modLabel = (typeof t === 'function' && t('logs_mod_label')) || 'Mod';
+    const userLabel =
+      (typeof t === "function" && t("logs_user_label")) || "User";
+    const modLabel = (typeof t === "function" && t("logs_mod_label")) || "Mod";
 
     if (log.user && log.user.tag) {
-      metaParts.push(userLabel + ': ' + log.user.tag);
+      metaParts.push(userLabel + ": " + log.user.tag);
     }
     if (log.executor && log.executor.tag) {
-      metaParts.push(modLabel + ': ' + log.executor.tag);
+      metaParts.push(modLabel + ": " + log.executor.tag);
     }
     if (log.time) {
       try {
@@ -323,20 +359,20 @@ const API_BASE = '/api';
         if (!isNaN(d.getTime())) {
           metaParts.push(d.toLocaleString());
         }
-      } catch (e) {
+      } catch {
         // se der erro mantemos só os restantes campos
       }
     }
 
-    const metaText = metaParts.join(' • ');
+    const metaText = metaParts.join(" • ");
 
     // Descrição em linha separada (se existir)
-    const desc = log.description || '';
+    const desc = log.description || "";
 
     row.innerHTML = `
         <div class="title">${escapeHtml(title)}</div>
         <div class="subtitle">${escapeHtml(metaText)}</div>
-        ${desc ? `<div class="subtitle small">${escapeHtml(desc)}</div>` : ''}
+        ${desc ? `<div class="subtitle small">${escapeHtml(desc)}</div>` : ""}
       `;
 
     return row;
@@ -345,201 +381,248 @@ const API_BASE = '/api';
   // Toasts (stacked, typed, accessible)
   function toast(message, opts) {
     opts = opts || {};
-    var type = (opts.type || 'info').toLowerCase();
-    var duration = typeof opts.duration === 'number' ? opts.duration : 2800;
+    var type = (opts.type || "info").toLowerCase();
+    var duration = typeof opts.duration === "number" ? opts.duration : 2800;
 
-    var hostId = 'rabbitToastHost';
+    var hostId = "rabbitToastHost";
     var host = document.getElementById(hostId);
     if (!host) {
-      host = document.createElement('div');
+      host = document.createElement("div");
       host.id = hostId;
-      host.className = 'toast-host';
-      host.setAttribute('aria-live', 'polite');
-      host.setAttribute('aria-relevant', 'additions');
+      host.className = "toast-host";
+      host.setAttribute("aria-live", "polite");
+      host.setAttribute("aria-relevant", "additions");
       document.body.appendChild(host);
     }
 
-    var item = document.createElement('div');
-    item.className = 'toast toast--' + (type || 'info');
-    item.setAttribute('role', type === 'error' ? 'alert' : 'status');
-    item.textContent = String(message || '');
+    var item = document.createElement("div");
+    item.className = "toast toast--" + (type || "info");
+    item.setAttribute("role", type === "error" ? "alert" : "status");
+    item.textContent = String(message || "");
 
     host.appendChild(item);
 
     // animate in
     requestAnimationFrame(function () {
-      item.classList.add('toast--visible');
+      item.classList.add("toast--visible");
     });
 
     clearTimeout(item._hideTimer);
-    item._hideTimer = setTimeout(function () {
-      item.classList.remove('toast--visible');
-      // remove after transition
-      setTimeout(function () {
-        try { item.remove(); } catch (e) {}
-        try {
-          // keep DOM clean
-          if (host && host.children && host.children.length === 0) host.remove();
-        } catch (e2) {}
-      }, 220);
-    }, Math.max(800, duration));
+    item._hideTimer = setTimeout(
+      function () {
+        item.classList.remove("toast--visible");
+        // remove after transition
+        setTimeout(function () {
+          try {
+            item.remove();
+          } catch {}
+          try {
+            // keep DOM clean
+            if (host && host.children && host.children.length === 0)
+              host.remove();
+          } catch {}
+        }, 220);
+      },
+      Math.max(800, duration),
+    );
   }
-
 
   function withLoading(promiseFactory, opts) {
     opts = opts || {};
-    var onStart = typeof opts.onStart === 'function' ? opts.onStart : null;
-    var onError = typeof opts.onError === 'function' ? opts.onError : null;
-    var onFinally = typeof opts.onFinally === 'function' ? opts.onFinally : null;
+    var onStart = typeof opts.onStart === "function" ? opts.onStart : null;
+    var onError = typeof opts.onError === "function" ? opts.onError : null;
+    var onFinally =
+      typeof opts.onFinally === "function" ? opts.onFinally : null;
     var toastOnError = opts.toastOnError || null;
 
     if (onStart) {
-      try { onStart(); } catch (e) { console.error(e); }
+      try {
+        onStart();
+      } catch (e) {
+        console.error(e);
+      }
     }
 
     return Promise.resolve()
-      .then(function () { return promiseFactory(); })
+      .then(function () {
+        return promiseFactory();
+      })
       .catch(function (err) {
         console.error(err);
         if (toastOnError) {
-          toast(toastOnError, { type: 'error' });
+          toast(toastOnError, { type: "error" });
         }
         if (onError) {
-          try { onError(err); } catch (e2) { console.error(e2); }
+          try {
+            onError(err);
+          } catch (e2) {
+            console.error(e2);
+          }
         }
         throw err;
       })
       .finally(function () {
         if (onFinally) {
-          try { onFinally(); } catch (e3) { console.error(e3); }
+          try {
+            onFinally();
+          } catch (e3) {
+            console.error(e3);
+          }
         }
       });
   }
   window.OzarkDashboard.withLoading = withLoading;
 
-  
+  // -----------------------------
+  // Global banner (estado/avisos)
+  // -----------------------------
+  var bannerState = { active: false, locked: false, lastKey: "" };
 
-// -----------------------------
-// Global banner (estado/avisos)
-// -----------------------------
-var bannerState = { active: false, locked: false, lastKey: '' };
+  function clearGlobalBanner() {
+    var el = document.getElementById("globalBanner");
+    var titleEl = document.getElementById("globalBannerTitle");
+    var msgEl = document.getElementById("globalBannerMessage");
+    var actionsEl = document.getElementById("globalBannerActions");
+    if (!el || !titleEl || !msgEl || !actionsEl) return;
 
-function clearGlobalBanner() {
-  var el = document.getElementById('globalBanner');
-  var titleEl = document.getElementById('globalBannerTitle');
-  var msgEl = document.getElementById('globalBannerMessage');
-  var actionsEl = document.getElementById('globalBannerActions');
-  if (!el || !titleEl || !msgEl || !actionsEl) return;
+    el.classList.add("hidden");
+    el.classList.remove(
+      "global-banner--info",
+      "global-banner--success",
+      "global-banner--warn",
+      "global-banner--error",
+    );
+    titleEl.textContent = "";
+    msgEl.textContent = "";
+    actionsEl.innerHTML = "";
+    bannerState.active = false;
+    bannerState.lastKey = "";
+  }
 
-  el.classList.add('hidden');
-  el.classList.remove('global-banner--info', 'global-banner--success', 'global-banner--warn', 'global-banner--error');
-  titleEl.textContent = '';
-  msgEl.textContent = '';
-  actionsEl.innerHTML = '';
-  bannerState.active = false;
-  bannerState.lastKey = '';
-}
+  function setGlobalBanner(opts) {
+    opts = opts || {};
+    var type = (opts.type || "info").toLowerCase();
+    var key = String(
+      opts.key || type + ":" + (opts.title || "") + ":" + (opts.message || ""),
+    );
 
-function setGlobalBanner(opts) {
-  opts = opts || {};
-  var type = (opts.type || 'info').toLowerCase();
-  var key = String(opts.key || (type + ':' + (opts.title || '') + ':' + (opts.message || '')));
+    // If user closed the same banner recently, don't resurrect it unless forced.
+    if (bannerState.locked && bannerState.lastKey === key && !opts.force)
+      return;
 
-  // If user closed the same banner recently, don't resurrect it unless forced.
-  if (bannerState.locked && bannerState.lastKey === key && !opts.force) return;
+    var el = document.getElementById("globalBanner");
+    var titleEl = document.getElementById("globalBannerTitle");
+    var msgEl = document.getElementById("globalBannerMessage");
+    var actionsEl = document.getElementById("globalBannerActions");
+    var closeBtn = document.getElementById("globalBannerClose");
+    if (!el || !titleEl || !msgEl || !actionsEl) return;
 
-  var el = document.getElementById('globalBanner');
-  var titleEl = document.getElementById('globalBannerTitle');
-  var msgEl = document.getElementById('globalBannerMessage');
-  var actionsEl = document.getElementById('globalBannerActions');
-  var closeBtn = document.getElementById('globalBannerClose');
-  if (!el || !titleEl || !msgEl || !actionsEl) return;
+    bannerState.active = true;
+    bannerState.lastKey = key;
 
-  bannerState.active = true;
-  bannerState.lastKey = key;
+    el.classList.remove(
+      "global-banner--info",
+      "global-banner--success",
+      "global-banner--warn",
+      "global-banner--error",
+    );
+    if (type === "success") el.classList.add("global-banner--success");
+    else if (type === "warn" || type === "warning")
+      el.classList.add("global-banner--warn");
+    else if (type === "error") el.classList.add("global-banner--error");
+    else el.classList.add("global-banner--info");
 
-  el.classList.remove('global-banner--info', 'global-banner--success', 'global-banner--warn', 'global-banner--error');
-  if (type === 'success') el.classList.add('global-banner--success');
-  else if (type === 'warn' || type === 'warning') el.classList.add('global-banner--warn');
-  else if (type === 'error') el.classList.add('global-banner--error');
-  else el.classList.add('global-banner--info');
+    titleEl.textContent = opts.title || "";
+    msgEl.textContent = opts.message || "";
+    actionsEl.innerHTML = "";
 
-  titleEl.textContent = opts.title || '';
-  msgEl.textContent = opts.message || '';
-  actionsEl.innerHTML = '';
-
-  var actions = Array.isArray(opts.actions) ? opts.actions : [];
-  actions.forEach(function (a) {
-    if (!a) return;
-    var btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'btn btn-ghost';
-    btn.textContent = a.label || 'OK';
-    btn.addEventListener('click', function () {
-      try { if (typeof a.onClick === 'function') a.onClick(); } catch (e) {}
+    var actions = Array.isArray(opts.actions) ? opts.actions : [];
+    actions.forEach(function (a) {
+      if (!a) return;
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "btn btn-ghost";
+      btn.textContent = a.label || "OK";
+      btn.addEventListener("click", function () {
+        try {
+          if (typeof a.onClick === "function") a.onClick();
+        } catch {}
+      });
+      actionsEl.appendChild(btn);
     });
-    actionsEl.appendChild(btn);
-  });
 
-  el.classList.remove('hidden');
+    el.classList.remove("hidden");
 
-  if (closeBtn && !closeBtn.__ozarkBound) {
-    closeBtn.__ozarkBound = true;
-    closeBtn.addEventListener('click', function () {
-      bannerState.locked = true;
+    if (closeBtn && !closeBtn.__ozarkBound) {
+      closeBtn.__ozarkBound = true;
+      closeBtn.addEventListener("click", function () {
+        bannerState.locked = true;
+        clearGlobalBanner();
+      });
+    }
+  }
+
+  function refreshGlobalBanner() {
+    // Avoid flashing “select guild” while guild list is still loading.
+    if (!state.guildsLoaded) {
       clearGlobalBanner();
-    });
-  }
-}
+      return;
+    }
+    // Priority: no guild selected > bot offline > none
+    if (!state.guildId) {
+      setGlobalBanner({
+        key: "no-guild",
+        type: "info",
+        title: t("warn_select_guild"),
+        message: t("select_guild"),
+        actions: [
+          {
+            label: t("select_guild") || "Selecionar",
+            onClick: function () {
+              var picker = document.getElementById("guildPicker");
+              if (picker) {
+                picker.focus();
+                picker.click && picker.click();
+              }
+            },
+          },
+        ],
+      });
+      return;
+    }
 
-function refreshGlobalBanner() {
-  // Avoid flashing “select guild” while guild list is still loading.
-  if (!state.guildsLoaded) {
+    if (bannerState.lastBotOk === false) {
+      setGlobalBanner({
+        key: "bot-offline",
+        type: "warn",
+        title: t("badge_bot_offline"),
+        message:
+          t("overview_bot_offline_hint") ||
+          "O bot parece offline ou não está pronto no Discord.",
+        actions: [
+          {
+            label: t("retry") || "Recarregar",
+            onClick: function () {
+              refreshBotStatusBadge();
+            },
+          },
+        ],
+      });
+      return;
+    }
+
     clearGlobalBanner();
-    return;
-  }
-  // Priority: no guild selected > bot offline > none
-  if (!state.guildId) {
-    setGlobalBanner({
-      key: 'no-guild',
-      type: 'info',
-      title: t('warn_select_guild'),
-      message: t('select_guild'),
-      actions: [
-        { label: t('select_guild') || 'Selecionar', onClick: function () {
-            var picker = document.getElementById('guildPicker');
-            if (picker) { picker.focus(); picker.click && picker.click(); }
-          } }
-      ]
-    });
-    return;
   }
 
-  if (bannerState.lastBotOk === false) {
-    setGlobalBanner({
-      key: 'bot-offline',
-      type: 'warn',
-      title: t('badge_bot_offline'),
-      message: t('overview_bot_offline_hint') || 'O bot parece offline ou não está pronto no Discord.',
-      actions: [
-        { label: t('retry') || 'Recarregar', onClick: function () { refreshBotStatusBadge(); } }
-      ]
-    });
-    return;
-  }
-
-  clearGlobalBanner();
-}
-
-function setPanelLoading(panelId, isLoading) {
+  function setPanelLoading(panelId, isLoading) {
     var panel = document.getElementById(panelId);
     if (!panel) return;
     if (isLoading) {
-      panel.classList.add('panel-loading');
-      panel.setAttribute('aria-busy', 'true');
+      panel.classList.add("panel-loading");
+      panel.setAttribute("aria-busy", "true");
     } else {
-      panel.classList.remove('panel-loading');
-      panel.removeAttribute('aria-busy');
+      panel.classList.remove("panel-loading");
+      panel.removeAttribute("aria-busy");
     }
   }
 
@@ -560,16 +643,15 @@ function setPanelLoading(panelId, isLoading) {
 
   window.OzarkDashboard.showPanelLoading = showPanelLoading;
 
-
- function escapeHtml(value) {
-    if (value === null || value === undefined) return '';
+  function escapeHtml(value) {
+    if (value === null || value === undefined) return "";
     return value
       .toString()
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
   }
 
   // -----------------------------
@@ -586,55 +668,64 @@ function setPanelLoading(panelId, isLoading) {
   function applyI18n() {
     document.documentElement.lang = state.lang;
 
-    document.querySelectorAll('[data-i18n]').forEach(function (el) {
-      const key = el.getAttribute('data-i18n');
+    document.querySelectorAll("[data-i18n]").forEach(function (el) {
+      const key = el.getAttribute("data-i18n");
       if (!key) return;
       el.textContent = t(key);
     });
 
-    document.querySelectorAll('[data-i18n-placeholder]').forEach(function (el) {
-      const key = el.getAttribute('data-i18n-placeholder');
+    document.querySelectorAll("[data-i18n-placeholder]").forEach(function (el) {
+      const key = el.getAttribute("data-i18n-placeholder");
       if (!key) return;
-      el.setAttribute('placeholder', t(key));
+      el.setAttribute("placeholder", t(key));
     });
 
     // Acessibilidade: rótulos/títulos traduzíveis.
-    [['data-i18n-aria-label', 'aria-label'], ['data-i18n-title', 'title']].forEach(function (pair) {
-      document.querySelectorAll('[' + pair[0] + ']').forEach(function (el) {
+    [
+      ["data-i18n-aria-label", "aria-label"],
+      ["data-i18n-title", "title"],
+    ].forEach(function (pair) {
+      document.querySelectorAll("[" + pair[0] + "]").forEach(function (el) {
         const key = el.getAttribute(pair[0]);
         if (!key) return;
         el.setAttribute(pair[1], t(key));
       });
     });
 
-    const warn = document.getElementById('tabWarning');
-    if (warn) warn.textContent = t('warn_select_guild');
+    const warn = document.getElementById("tabWarning");
+    if (warn) warn.textContent = t("warn_select_guild");
 
     // Re-render badges because they include translated labels.
-    try { updateAccessBadges(); } catch (e) {}
+    try {
+      updateAccessBadges();
+    } catch {}
 
     // Os botões de preferências mostram dicas traduzidas.
-    try { updatePrefButtons(); } catch (e) {}
+    try {
+      updatePrefButtons();
+    } catch {}
   }
 
   var dashboardLanguageSequence = 0;
 
   async function setDashboardLanguage(language) {
     var sequence = ++dashboardLanguageSequence;
-    var selectedLanguage = language === 'en' || language === 'pt'
-      ? language
-      : getBrowserLanguage();
+    var selectedLanguage =
+      language === "en" || language === "pt" ? language : getBrowserLanguage();
 
     try {
       await window.OzarkDashboard.I18n.init(selectedLanguage);
     } catch (err) {
       if (sequence !== dashboardLanguageSequence) return;
-      console.error('Failed to load dashboard language', selectedLanguage, err);
-      selectedLanguage = 'pt';
+      console.error("Failed to load dashboard language", selectedLanguage, err);
+      selectedLanguage = "pt";
       try {
-        await window.OzarkDashboard.I18n.init('pt');
+        await window.OzarkDashboard.I18n.init("pt");
       } catch (fallbackError) {
-        console.error('Failed to load fallback dashboard language', fallbackError);
+        console.error(
+          "Failed to load fallback dashboard language",
+          fallbackError,
+        );
       }
     }
 
@@ -651,93 +742,112 @@ function setPanelLoading(panelId, isLoading) {
     }
 
     try {
-      var response = await apiGet('/guilds/' + encodeURIComponent(guildId) + '/config');
-      if (sequence !== dashboardLanguageSequence || state.guildId !== guildId) return;
+      var response = await apiGet(
+        "/guilds/" + encodeURIComponent(guildId) + "/config",
+      );
+      if (sequence !== dashboardLanguageSequence || state.guildId !== guildId)
+        return;
       var config = response && response.config ? response.config : {};
-      state.guildLanguage = typeof config.language === 'string' ? config.language : 'auto';
+      state.guildLanguage =
+        typeof config.language === "string" ? config.language : "auto";
       await setDashboardLanguage(state.guildLanguage);
     } catch (err) {
-      if (sequence !== dashboardLanguageSequence || state.guildId !== guildId) return;
-      console.error('Failed to load configured dashboard language', err);
+      if (sequence !== dashboardLanguageSequence || state.guildId !== guildId)
+        return;
+      console.error("Failed to load configured dashboard language", err);
       await setDashboardLanguage(getBrowserLanguage());
     }
   }
 
   async function refreshBotStatusBadge() {
-    const el = document.getElementById('badgeBot');
+    const el = document.getElementById("badgeBot");
     if (!el) return;
 
     try {
-      const res = await fetch('/health', { method: 'GET' });
-      if (!res.ok) throw new Error('Health failed');
+      const res = await fetch("/health", { method: "GET" });
+      if (!res.ok) throw new Error("Health failed");
       const data = await res.json();
 
       const ok = !!data.ok && !!data.discordReady;
 
       bannerState.lastBotOk = ok;
 
-      el.classList.remove('status-online', 'status-offline');
+      el.classList.remove("status-online", "status-offline");
 
       if (ok) {
-        el.classList.add('status-online');
-        el.textContent = t('badge_bot_online');
-        el.title = t('badge_bot_tooltip_online');
+        el.classList.add("status-online");
+        el.textContent = t("badge_bot_online");
+        el.title = t("badge_bot_tooltip_online");
         refreshGlobalBanner();
       } else {
-        el.classList.add('status-offline');
-        el.textContent = t('badge_bot_offline');
-        el.title = t('badge_bot_tooltip_offline');
+        el.classList.add("status-offline");
+        el.textContent = t("badge_bot_offline");
+        el.title = t("badge_bot_tooltip_offline");
         bannerState.lastBotOk = false;
         refreshGlobalBanner();
       }
     } catch (e) {
-      console.error('Failed to refresh bot status badge', e);
-      el.classList.remove('status-online');
-      el.classList.add('status-offline');
-      el.textContent = t('badge_bot_offline');
-      el.title = t('badge_bot_tooltip_offline');
+      console.error("Failed to refresh bot status badge", e);
+      el.classList.remove("status-online");
+      el.classList.add("status-offline");
+      el.textContent = t("badge_bot_offline");
+      el.title = t("badge_bot_tooltip_offline");
       bannerState.lastBotOk = false;
       refreshGlobalBanner();
     }
   }
 
   function updateAccessBadges() {
-    var elProfile = document.getElementById('badgeProfile');
-    var elAccess = document.getElementById('badgeAccess');
+    var elProfile = document.getElementById("badgeProfile");
+    var elAccess = document.getElementById("badgeAccess");
     if (!elProfile || !elAccess) return;
 
     var me = state.me;
     if (!me) {
-      elProfile.classList.add('hidden');
-      elAccess.classList.add('hidden');
-      elProfile.textContent = '';
-      elAccess.textContent = '';
+      elProfile.classList.add("hidden");
+      elAccess.classList.add("hidden");
+      elProfile.textContent = "";
+      elAccess.textContent = "";
       return;
     }
 
-    elProfile.textContent = me.role === 'BOT_OWNER'
-      ? t('profile_bot_owner')
-      : (me.role === 'BOT_ADMIN' ? t('profile_bot_admin') : (me.username || 'Discord'));
-    elProfile.classList.remove('badge-premium');
-    elProfile.classList.toggle('badge-bot-owner', me.role === 'BOT_OWNER');
-    elProfile.classList.remove('hidden');
+    elProfile.textContent =
+      me.role === "BOT_OWNER"
+        ? t("profile_bot_owner")
+        : me.role === "BOT_ADMIN"
+          ? t("profile_bot_admin")
+          : me.username || "Discord";
+    elProfile.classList.remove("badge-premium");
+    elProfile.classList.toggle("badge-bot-owner", me.role === "BOT_OWNER");
+    elProfile.classList.remove("hidden");
 
-    var perms = (state.perms && typeof state.perms === 'object') ? state.perms : {};
-    var scoped = !!(me.selectedGuildId || (me.profile && me.profile !== 'UNSCOPED'));
-    var canManage = !!(me.role === 'BOT_ADMIN' || me.role === 'BOT_OWNER' || perms.canEditConfig || perms.canActOnCases || perms.canManageTickets || perms.canManageGameNews);
+    var perms =
+      state.perms && typeof state.perms === "object" ? state.perms : {};
+    var scoped = !!(
+      me.selectedGuildId ||
+      (me.profile && me.profile !== "UNSCOPED")
+    );
+    var canManage = !!(
+      me.role === "BOT_ADMIN" ||
+      me.role === "BOT_OWNER" ||
+      perms.canEditConfig ||
+      perms.canActOnCases ||
+      perms.canManageTickets ||
+      perms.canManageGameNews
+    );
 
     var accessLabel;
     if (!scoped && me.oauth) {
-      accessLabel = t('access_select_guild');
-      elAccess.classList.remove('badge-readonly', 'badge-manage');
+      accessLabel = t("access_select_guild");
+      elAccess.classList.remove("badge-readonly", "badge-manage");
     } else {
-      accessLabel = canManage ? t('access_manage') : t('access_readonly');
-      elAccess.classList.toggle('badge-manage', canManage);
-      elAccess.classList.toggle('badge-readonly', !canManage);
+      accessLabel = canManage ? t("access_manage") : t("access_readonly");
+      elAccess.classList.toggle("badge-manage", canManage);
+      elAccess.classList.toggle("badge-readonly", !canManage);
     }
 
-    elAccess.textContent = t('badge_access', { access: accessLabel });
-    elAccess.classList.remove('hidden');
+    elAccess.textContent = t("badge_access", { access: accessLabel });
+    elAccess.classList.remove("hidden");
   }
 
   // ------------------------------
@@ -746,7 +856,7 @@ function setPanelLoading(panelId, isLoading) {
   // Guardado em sessionStorage: persiste entre navegações dentro do mesmo
   // separador e é limpo ao terminar sessão. O contador arranca no primeiro
   // carregamento autenticado (ou seja, logo após o login).
-  const SESSION_KEY = 'ozark.loginAt';
+  const SESSION_KEY = "ozark.loginAt";
   var sessionStartedAt = 0;
 
   function ensureSessionStart() {
@@ -760,14 +870,16 @@ function setPanelLoading(panelId, isLoading) {
         return sessionStartedAt;
       }
       sessionStorage.setItem(SESSION_KEY, String(now));
-    } catch (e) {}
+    } catch {}
     sessionStartedAt = now;
     return sessionStartedAt;
   }
 
   function clearSessionStart() {
     sessionStartedAt = 0;
-    try { sessionStorage.removeItem(SESSION_KEY); } catch (e) {}
+    try {
+      sessionStorage.removeItem(SESSION_KEY);
+    } catch {}
   }
 
   function formatSessionDuration(ms) {
@@ -775,137 +887,150 @@ function setPanelLoading(panelId, isLoading) {
     var days = Math.floor(totalMinutes / 1440);
     var hours = Math.floor((totalMinutes % 1440) / 60);
     var minutes = totalMinutes % 60;
-    if (days > 0) return days + 'd ' + hours + 'h';
-    if (hours > 0) return hours + 'h ' + minutes + 'm';
-    return minutes + 'm';
+    if (days > 0) return days + "d " + hours + "h";
+    if (hours > 0) return hours + "h " + minutes + "m";
+    return minutes + "m";
   }
 
   function updateSessionBadge() {
-    var el = document.getElementById('badgeSession');
+    var el = document.getElementById("badgeSession");
     if (!el) return;
     if (!state.me) {
-      el.classList.add('hidden');
-      el.textContent = '';
+      el.classList.add("hidden");
+      el.textContent = "";
       return;
     }
     var elapsed = Date.now() - ensureSessionStart();
-    el.textContent = t('badge_session', { time: formatSessionDuration(elapsed) });
-    el.title = t('badge_session_tooltip');
-    el.classList.remove('hidden');
+    el.textContent = t("badge_session", {
+      time: formatSessionDuration(elapsed),
+    });
+    el.title = t("badge_session_tooltip");
+    el.classList.remove("hidden");
   }
 
-
-// -----------------------------
+  // -----------------------------
   // Preferências de interface (tema / densidade)
   // -----------------------------
   // Vivem apenas no cliente (localStorage) e traduzem-se em atributos em
   // <html> que os tokens de tokens.css usam para fazer os overrides.
 
-  const THEME_KEY = 'ozark.theme';
-  const DENSITY_KEY = 'ozark.density';
+  const THEME_KEY = "ozark.theme";
+  const DENSITY_KEY = "ozark.density";
 
   function readPref(key, allowed, fallback) {
     try {
-      const raw = (localStorage.getItem(key) || '').toLowerCase();
+      const raw = (localStorage.getItem(key) || "").toLowerCase();
       if (allowed.indexOf(raw) !== -1) return raw;
-    } catch (e) {}
+    } catch {}
     return fallback;
   }
 
   function applyTheme(theme, persist) {
-    state.theme = theme === 'light' ? 'light' : 'dark';
+    state.theme = theme === "light" ? "light" : "dark";
     const root = document.documentElement;
-    if (state.theme === 'light') root.setAttribute('data-theme', 'light');
-    else root.removeAttribute('data-theme');
+    if (state.theme === "light") root.setAttribute("data-theme", "light");
+    else root.removeAttribute("data-theme");
     if (persist) {
-      try { localStorage.setItem(THEME_KEY, state.theme); } catch (e) {}
+      try {
+        localStorage.setItem(THEME_KEY, state.theme);
+      } catch {}
     }
     updatePrefButtons();
   }
 
   function applyDensity(density, persist) {
-    state.density = density === 'compact' ? 'compact' : 'comfortable';
+    state.density = density === "compact" ? "compact" : "comfortable";
     const root = document.documentElement;
-    if (state.density === 'compact') root.setAttribute('data-density', 'compact');
-    else root.removeAttribute('data-density');
+    if (state.density === "compact")
+      root.setAttribute("data-density", "compact");
+    else root.removeAttribute("data-density");
     if (persist) {
-      try { localStorage.setItem(DENSITY_KEY, state.density); } catch (e) {}
+      try {
+        localStorage.setItem(DENSITY_KEY, state.density);
+      } catch {}
     }
     updatePrefButtons();
   }
 
   function toggleTheme() {
-    applyTheme(state.theme === 'light' ? 'dark' : 'light', true);
+    applyTheme(state.theme === "light" ? "dark" : "light", true);
   }
 
   function toggleDensity() {
-    applyDensity(state.density === 'compact' ? 'comfortable' : 'compact', true);
+    applyDensity(state.density === "compact" ? "comfortable" : "compact", true);
   }
 
   function updatePrefButtons() {
-    const themeBtn = document.getElementById('themeToggle');
+    const themeBtn = document.getElementById("themeToggle");
     if (themeBtn) {
-      const isLight = state.theme === 'light';
-      const hint = t(isLight ? 'pref_theme_to_dark' : 'pref_theme_to_light');
-      themeBtn.setAttribute('aria-pressed', isLight ? 'true' : 'false');
-      themeBtn.setAttribute('title', hint);
-      themeBtn.setAttribute('aria-label', hint);
+      const isLight = state.theme === "light";
+      const hint = t(isLight ? "pref_theme_to_dark" : "pref_theme_to_light");
+      themeBtn.setAttribute("aria-pressed", isLight ? "true" : "false");
+      themeBtn.setAttribute("title", hint);
+      themeBtn.setAttribute("aria-label", hint);
     }
 
-    const densityBtn = document.getElementById('densityToggle');
+    const densityBtn = document.getElementById("densityToggle");
     if (densityBtn) {
-      const isCompact = state.density === 'compact';
-      const hint = t(isCompact ? 'pref_density_to_comfortable' : 'pref_density_to_compact');
-      densityBtn.setAttribute('aria-pressed', isCompact ? 'true' : 'false');
-      densityBtn.setAttribute('title', hint);
-      densityBtn.setAttribute('aria-label', hint);
+      const isCompact = state.density === "compact";
+      const hint = t(
+        isCompact ? "pref_density_to_comfortable" : "pref_density_to_compact",
+      );
+      densityBtn.setAttribute("aria-pressed", isCompact ? "true" : "false");
+      densityBtn.setAttribute("title", hint);
+      densityBtn.setAttribute("aria-label", hint);
     }
   }
 
   function initPreferences() {
-    const themeBtn = document.getElementById('themeToggle');
-    if (themeBtn) themeBtn.addEventListener('click', toggleTheme);
-    const densityBtn = document.getElementById('densityToggle');
-    if (densityBtn) densityBtn.addEventListener('click', toggleDensity);
+    const themeBtn = document.getElementById("themeToggle");
+    if (themeBtn) themeBtn.addEventListener("click", toggleTheme);
+    const densityBtn = document.getElementById("densityToggle");
+    if (densityBtn) densityBtn.addEventListener("click", toggleDensity);
     updatePrefButtons();
 
     // Dropdown menu de preferências
-    const prefsTrigger = document.getElementById('prefsTrigger');
-    const prefsPanel = document.getElementById('prefsPanel');
+    const prefsTrigger = document.getElementById("prefsTrigger");
+    const prefsPanel = document.getElementById("prefsPanel");
     if (prefsTrigger && prefsPanel && !prefsTrigger.dataset.bound) {
-      prefsTrigger.dataset.bound = '1';
+      prefsTrigger.dataset.bound = "1";
 
       function togglePrefsMenu(open) {
-        const willOpen = typeof open === 'boolean' ? open : prefsPanel.classList.contains('hidden');
-        prefsPanel.classList.toggle('hidden', !willOpen);
-        prefsTrigger.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+        const willOpen =
+          typeof open === "boolean"
+            ? open
+            : prefsPanel.classList.contains("hidden");
+        prefsPanel.classList.toggle("hidden", !willOpen);
+        prefsTrigger.setAttribute("aria-expanded", willOpen ? "true" : "false");
       }
 
-      prefsTrigger.addEventListener('click', function (e) {
+      prefsTrigger.addEventListener("click", function (e) {
         e.stopPropagation();
         togglePrefsMenu();
       });
 
       // Fechar ao clicar fora
-      document.addEventListener('click', function (e) {
-        if (prefsPanel.classList.contains('hidden')) return;
-        const menu = document.getElementById('prefsMenu');
+      document.addEventListener("click", function (e) {
+        if (prefsPanel.classList.contains("hidden")) return;
+        const menu = document.getElementById("prefsMenu");
         if (menu && !menu.contains(e.target)) togglePrefsMenu(false);
       });
 
       // Fechar com Escape e permitir navegação por teclado
-      prefsPanel.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape') {
+      prefsPanel.addEventListener("keydown", function (e) {
+        if (e.key === "Escape") {
           togglePrefsMenu(false);
           prefsTrigger.focus();
         }
       });
 
       // Fechar após clicar num item (exceto se for um toggle que pode querer manter aberto)
-      prefsPanel.querySelectorAll('.prefs-menu__item').forEach(function (item) {
-        item.addEventListener('click', function () {
+      prefsPanel.querySelectorAll(".prefs-menu__item").forEach(function (item) {
+        item.addEventListener("click", function () {
           // Pequeno delay para o utilizador ver o estado visual do toggle
-          setTimeout(function () { togglePrefsMenu(false); }, 120);
+          setTimeout(function () {
+            togglePrefsMenu(false);
+          }, 120);
         });
       });
     }
@@ -913,43 +1038,55 @@ function setPanelLoading(panelId, isLoading) {
 
   // Aplicar o mais cedo possível (o script é `defer`, corre antes do
   // DOMContentLoaded) para evitar um "flash" do tema errado.
-  applyTheme(readPref(THEME_KEY, ['dark', 'light'], 'dark'), false);
-  applyDensity(readPref(DENSITY_KEY, ['comfortable', 'compact'], 'comfortable'), false);
+  applyTheme(readPref(THEME_KEY, ["dark", "light"], "dark"), false);
+  applyDensity(
+    readPref(DENSITY_KEY, ["comfortable", "compact"], "comfortable"),
+    false,
+  );
 
-// -----------------------------
+  // -----------------------------
   // Tab / layout helpers
   // -----------------------------
 
   // Mantém em sincronia o estado visual e ARIA dos botões de tab.
   // Roving tabindex: só a tab ativa é alcançável por Tab; as setas movem o foco.
   function applyTabButtonState(activeName) {
-    document.querySelectorAll('.tabs button[data-tab]').forEach(function (btn) {
-      var isActive = btn.getAttribute('data-tab') === activeName;
-      btn.classList.toggle('active', isActive);
-      btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
-      btn.setAttribute('tabindex', isActive ? '0' : '-1');
+    document.querySelectorAll(".tabs button[data-tab]").forEach(function (btn) {
+      var isActive = btn.getAttribute("data-tab") === activeName;
+      btn.classList.toggle("active", isActive);
+      btn.setAttribute("aria-selected", isActive ? "true" : "false");
+      btn.setAttribute("tabindex", isActive ? "0" : "-1");
     });
   }
 
   function setTab(name) {
-    const tabsRequiringGuild = ['logs', 'features', 'user', 'config', 'tickets'];
+    const tabsRequiringGuild = [
+      "logs",
+      "features",
+      "user",
+      "config",
+      "tickets",
+    ];
     if (!state.guildId && tabsRequiringGuild.indexOf(name) !== -1) {
       // Em vez de mudar tab, certifica-nos que overview está ativo
-      state.currentTab = 'overview';
+      state.currentTab = "overview";
       // Warning visibility is handled centrally in updateTabAccess() (prevents flashing during bootstrap).
       updateTabAccess();
       // Reforçar botões ativos
-      document.querySelectorAll('.section').forEach(function (sec) {
-        sec.classList.remove('active');
+      document.querySelectorAll(".section").forEach(function (sec) {
+        sec.classList.remove("active");
       });
-      const section = document.getElementById('tab-overview');
-      if (section) section.classList.add('active');
-      applyTabButtonState('overview');
+      const section = document.getElementById("tab-overview");
+      if (section) section.classList.add("active");
+      applyTabButtonState("overview");
       return;
     }
-    if (name === 'premium-admin' && !(state.me && state.me.role === 'BOT_OWNER')) {
-      state.currentTab = 'overview';
-      name = 'overview';
+    if (
+      name === "premium-admin" &&
+      !(state.me && state.me.role === "BOT_OWNER")
+    ) {
+      state.currentTab = "overview";
+      name = "overview";
     }
     state.currentTab = name;
 
@@ -958,151 +1095,183 @@ function setPanelLoading(panelId, isLoading) {
       window.scrollTo(0, window.scrollY || 0);
       document.documentElement.scrollLeft = 0;
       document.body.scrollLeft = 0;
-    } catch (e) {}
+    } catch {}
 
     // Reset seleção de utilizadores / GameNews ao entrar nas tabs
-    if (name === 'user') {
+    if (name === "user") {
       state.selectedUserId = null;
       state.userSelectionPinned = false;
-      const userDetail = document.getElementById('userDetailPanel');
+      const userDetail = document.getElementById("userDetailPanel");
       if (userDetail) {
-        userDetail.innerHTML = `<div class="empty">${escapeHtml(t('users_detail_empty'))}</div>`;
+        userDetail.innerHTML = `<div class="empty">${escapeHtml(t("users_detail_empty"))}</div>`;
       }
-      const userList = document.querySelector('#tab-user .list');
+      const userList = document.querySelector("#tab-user .list");
       if (userList) {
-        userList.querySelectorAll('.list-item').forEach(function (row) {
-          row.classList.remove('active');
+        userList.querySelectorAll(".list-item").forEach(function (row) {
+          row.classList.remove("active");
         });
       }
-    } else if (name === 'features') {
+    } else if (name === "features") {
       // Os painéis de GameNews, voz temporária e giveaways são reiniciados ao entrar.
       state.activeGameNewsFeedIndex = null;
-      const feedDetail = document.getElementById('gamenewsFeedDetailPanel');
+      const feedDetail = document.getElementById("gamenewsFeedDetailPanel");
       if (feedDetail) {
-        feedDetail.innerHTML = `<div class="empty">${escapeHtml(t('gamenews_detail_empty'))}</div>`;
+        feedDetail.innerHTML = `<div class="empty">${escapeHtml(t("gamenews_detail_empty"))}</div>`;
       }
-      const feedList = document.getElementById('gamenewsFeedsList');
+      const feedList = document.getElementById("gamenewsFeedsList");
       if (feedList) {
-        feedList.querySelectorAll('.list-item').forEach(function (row) {
-          row.classList.remove('active');
+        feedList.querySelectorAll(".list-item").forEach(function (row) {
+          row.classList.remove("active");
         });
       }
 
       // Reset da seleção de voz temporária ao entrar na tab de funcionalidades.
       try {
-        state.tempVoiceBase = state.tempVoiceBase || { items: [], selectedIndex: -1 };
+        state.tempVoiceBase = state.tempVoiceBase || {
+          items: [],
+          selectedIndex: -1,
+        };
         state.tempVoiceBase.selectedIndex = -1;
 
-        var tvBaseIdInput = document.getElementById('tempVoiceAddBaseSelect') || document.getElementById('tempVoiceBaseId');
-        if (tvBaseIdInput) tvBaseIdInput.value = '';
+        var tvBaseIdInput =
+          document.getElementById("tempVoiceAddBaseSelect") ||
+          document.getElementById("tempVoiceBaseId");
+        if (tvBaseIdInput) tvBaseIdInput.value = "";
 
-        var tvEmptyEl = document.getElementById('tempVoiceDetailEmpty');
-        var tvContentEl = document.getElementById('tempVoiceDetailContent');
-        var tvCurrentLabel = document.getElementById('tempVoiceCurrentBaseLabel');
-        if (tvEmptyEl) tvEmptyEl.classList.remove('hidden');
-        if (tvContentEl) tvContentEl.classList.add('hidden');
+        var tvEmptyEl = document.getElementById("tempVoiceDetailEmpty");
+        var tvContentEl = document.getElementById("tempVoiceDetailContent");
+        var tvCurrentLabel = document.getElementById(
+          "tempVoiceCurrentBaseLabel",
+        );
+        if (tvEmptyEl) tvEmptyEl.classList.remove("hidden");
+        if (tvContentEl) tvContentEl.classList.add("hidden");
         if (tvCurrentLabel) {
-          tvCurrentLabel.textContent = t('tempvoice_current_base') + ' (nenhum selecionado)';
+          tvCurrentLabel.textContent =
+            t("tempvoice_current_base") + " (nenhum selecionado)";
         }
-        if (typeof renderTempVoiceBaseList === 'function') {
+        if (typeof renderTempVoiceBaseList === "function") {
           renderTempVoiceBaseList();
         }
       } catch (e) {
-        console.error('Failed to reset temp voice detail', e);
+        console.error("Failed to reset temp voice detail", e);
       }
     }
 
-
-    document.querySelectorAll('.section').forEach(function (sec) {
-      sec.classList.remove('active');
+    document.querySelectorAll(".section").forEach(function (sec) {
+      sec.classList.remove("active");
     });
 
-    const section = document.getElementById('tab-' + name);
-    if (section) section.classList.add('active');
+    const section = document.getElementById("tab-" + name);
+    if (section) section.classList.add("active");
 
     applyTabButtonState(name);
 
     updateTabAccess();
-    if (name === 'overview') {
+    if (name === "overview") {
       loadOverview().catch(function () {});
-    } else if (name === 'logs') {
+    } else if (name === "logs") {
       // Overlay loading for the tab while we fetch the panel data.
-      setPanelLoading('tab-logs', true);
-      var p1 = (window.OzarkDashboard.loadModerationOverview
+      setPanelLoading("tab-logs", true);
+      var p1 = window.OzarkDashboard.loadModerationOverview
         ? window.OzarkDashboard.loadModerationOverview()
-        : Promise.resolve());
-      var p2 = (window.OzarkDashboard.loadLogs
+        : Promise.resolve();
+      var p2 = window.OzarkDashboard.loadLogs
         ? window.OzarkDashboard.loadLogs()
-        : Promise.resolve());
-      var p3 = (window.OzarkDashboard.loadTickets
+        : Promise.resolve();
+      var p3 = window.OzarkDashboard.loadTickets
         ? window.OzarkDashboard.loadTickets(true)
-        : Promise.resolve());
+        : Promise.resolve();
       Promise.allSettled([p1, p2, p3]).finally(function () {
-        setPanelLoading('tab-logs', false);
+        setPanelLoading("tab-logs", false);
       });
-    } else if (name === 'giveaways') {
-      setPanelLoading('tab-giveaways', true);
-      var gv1 = (window.OzarkDashboard.loadGiveaways ? window.OzarkDashboard.loadGiveaways() : Promise.resolve());
+    } else if (name === "giveaways") {
+      setPanelLoading("tab-giveaways", true);
+      var gv1 = window.OzarkDashboard.loadGiveaways
+        ? window.OzarkDashboard.loadGiveaways()
+        : Promise.resolve();
       Promise.resolve(gv1).finally(function () {
-        setPanelLoading('tab-giveaways', false);
+        setPanelLoading("tab-giveaways", false);
       });
-    } else if (name === 'features') {
-      setPanelLoading('tab-features', true);
+    } else if (name === "features") {
+      setPanelLoading("tab-features", true);
       // A configuração detalhada dos módulos Premium só é carregada ao abrir o cartão.
-      var f1 = (window.OzarkDashboard.loadFeatures ? window.OzarkDashboard.loadFeatures() : Promise.resolve());
-      var f2 = (window.OzarkDashboard.loadPremium ? window.OzarkDashboard.loadPremium() : Promise.resolve());
+      var f1 = window.OzarkDashboard.loadFeatures
+        ? window.OzarkDashboard.loadFeatures()
+        : Promise.resolve();
+      var f2 = window.OzarkDashboard.loadPremium
+        ? window.OzarkDashboard.loadPremium()
+        : Promise.resolve();
       // Garantir que canais/roles de configuração estão disponíveis para Tickets/Extras
-      var f3 = (typeof loadGuildConfig === 'function' ? loadGuildConfig() : Promise.resolve());
+      var f3 =
+        typeof loadGuildConfig === "function"
+          ? loadGuildConfig()
+          : Promise.resolve();
       Promise.allSettled([f1, f2, f3]).finally(function () {
-        setPanelLoading('tab-features', false);
+        setPanelLoading("tab-features", false);
       });
-    } else if (name === 'user') {
-      setPanelLoading('tab-user', true);
-      var u1 = (window.OzarkDashboard.loadUsers ? window.OzarkDashboard.loadUsers() : Promise.resolve());
-      var u2 = (window.OzarkDashboard.loadPremium ? window.OzarkDashboard.loadPremium() : Promise.resolve());
+    } else if (name === "user") {
+      setPanelLoading("tab-user", true);
+      var u1 = window.OzarkDashboard.loadUsers
+        ? window.OzarkDashboard.loadUsers()
+        : Promise.resolve();
+      var u2 = window.OzarkDashboard.loadPremium
+        ? window.OzarkDashboard.loadPremium()
+        : Promise.resolve();
       Promise.allSettled([u1, u2]).finally(function () {
-        setPanelLoading('tab-user', false);
+        setPanelLoading("tab-user", false);
       });
-    } else if (name === 'config') {
-      setPanelLoading('tab-config', true);
+    } else if (name === "config") {
+      setPanelLoading("tab-config", true);
       // A auditoria só carrega a pedido (botão "Recarregar" ou filtros):
       // entrar na aba não deve disparar pedidos que o utilizador não pediu.
-      var c1 = (typeof loadGuildConfig === 'function' ? loadGuildConfig() : Promise.resolve());
+      var c1 =
+        typeof loadGuildConfig === "function"
+          ? loadGuildConfig()
+          : Promise.resolve();
       Promise.resolve(c1).finally(function () {
-        setPanelLoading('tab-config', false);
+        setPanelLoading("tab-config", false);
       });
-    } else if (name === 'tickets') {
-      setPanelLoading('tab-tickets', true);
-      var t1 = (window.OzarkDashboard && typeof window.OzarkDashboard.loadTickets === 'function')
-        ? window.OzarkDashboard.loadTickets(true)
-        : Promise.resolve();
+    } else if (name === "tickets") {
+      setPanelLoading("tab-tickets", true);
+      var t1 =
+        window.OzarkDashboard &&
+        typeof window.OzarkDashboard.loadTickets === "function"
+          ? window.OzarkDashboard.loadTickets(true)
+          : Promise.resolve();
       Promise.resolve(t1).finally(function () {
-        setPanelLoading('tab-tickets', false);
+        setPanelLoading("tab-tickets", false);
       });
-    } else if (name === 'premium-admin') {
-      setPanelLoading('tab-premium-admin', true);
+    } else if (name === "premium-admin") {
+      setPanelLoading("tab-premium-admin", true);
       var maintenanceLoad = loadBotMaintenance();
-      var premiumAdminLoad = window.OzarkDashboard && window.OzarkDashboard.loadPremiumAdmin
-        ? window.OzarkDashboard.loadPremiumAdmin()
-        : Promise.resolve();
-      Promise.allSettled([maintenanceLoad, premiumAdminLoad]).finally(function () {
-        setPanelLoading('tab-premium-admin', false);
-      });
+      var premiumAdminLoad =
+        window.OzarkDashboard && window.OzarkDashboard.loadPremiumAdmin
+          ? window.OzarkDashboard.loadPremiumAdmin()
+          : Promise.resolve();
+      Promise.allSettled([maintenanceLoad, premiumAdminLoad]).finally(
+        function () {
+          setPanelLoading("tab-premium-admin", false);
+        },
+      );
     }
   }
 
   function updateTabAccess() {
-    const warn = document.getElementById('tabWarning');
+    const warn = document.getElementById("tabWarning");
     const hasGuild = !!state.guildId;
     const ready = !!state.guildsLoaded;
-    const globalPremiumView = state.currentTab === 'premium-admin';
+    const globalPremiumView = state.currentTab === "premium-admin";
     if (warn) {
       // Avoid flashing the warning during bootstrap (before guilds are loaded).
-      warn.style.display = (!ready || hasGuild || globalPremiumView) ? 'none' : 'block';
-      warn.classList.toggle('hidden', (!ready || hasGuild || globalPremiumView));
+      warn.style.display =
+        !ready || hasGuild || globalPremiumView ? "none" : "block";
+      warn.classList.toggle("hidden", !ready || hasGuild || globalPremiumView);
     }
 
-    const p = (state && state.perms && typeof state.perms === 'object') ? state.perms : {};
+    const p =
+      state && state.perms && typeof state.perms === "object"
+        ? state.perms
+        : {};
     const isAuthed = !!(state && state.me);
     const canViewLogs = !!p.canViewLogs;
     const canActOnCases = !!p.canActOnCases;
@@ -1111,8 +1280,12 @@ function setPanelLoading(panelId, isLoading) {
 
     // While OAuth is unscoped (before selecting a guild), disable everything that requires permissions.
     const requiresPerms = hasGuild && isAuthed;
-    const ticketsPanel = document.getElementById('ticketsManagementPanel');
-    if (ticketsPanel) ticketsPanel.classList.toggle('hidden', !requiresPerms || !canManageTickets);
+    const ticketsPanel = document.getElementById("ticketsManagementPanel");
+    if (ticketsPanel)
+      ticketsPanel.classList.toggle(
+        "hidden",
+        !requiresPerms || !canManageTickets,
+      );
 
     const tabRules = {
       logs: requiresPerms && canViewLogs,
@@ -1120,28 +1293,45 @@ function setPanelLoading(panelId, isLoading) {
       features: requiresPerms && canViewConfig,
       tickets: requiresPerms && canManageTickets,
       config: requiresPerms && canViewConfig,
-      'premium-admin': !!(state.me && state.me.role === 'BOT_OWNER')
+      "premium-admin": !!(state.me && state.me.role === "BOT_OWNER"),
     };
 
-    const tabs = ['logs', 'features', 'user', 'config', 'tickets', 'premium-admin'];
+    const tabs = [
+      "logs",
+      "features",
+      "user",
+      "config",
+      "tickets",
+      "premium-admin",
+    ];
     tabs.forEach(function (name) {
-      const btn = document.querySelector('.tabs button[data-tab="' + name + '"]');
+      const btn = document.querySelector(
+        '.tabs button[data-tab="' + name + '"]',
+      );
       if (!btn) return;
-      btn.classList.toggle('hidden', name === 'premium-admin' && !tabRules[name]);
-      btn.disabled = name === 'premium-admin' ? !tabRules[name] : (!hasGuild || !tabRules[name]);
+      btn.classList.toggle(
+        "hidden",
+        name === "premium-admin" && !tabRules[name],
+      );
+      btn.disabled =
+        name === "premium-admin"
+          ? !tabRules[name]
+          : !hasGuild || !tabRules[name];
     });
 
     // Atalhos do Overview seguem as mesmas regras das abas.
-    document.querySelectorAll('#overviewShortcuts [data-goto]').forEach(function (btn) {
-      const name = btn.getAttribute('data-goto');
-      btn.disabled = !hasGuild || !tabRules[name];
-    });
+    document
+      .querySelectorAll("#overviewShortcuts [data-goto]")
+      .forEach(function (btn) {
+        const name = btn.getAttribute("data-goto");
+        btn.disabled = !hasGuild || !tabRules[name];
+      });
 
     // If current tab becomes inaccessible, fallback to overview.
-    if (state.currentTab && state.currentTab !== 'overview') {
+    if (state.currentTab && state.currentTab !== "overview") {
       const allowed = tabRules[state.currentTab] === true;
-      if ((!hasGuild && state.currentTab !== 'premium-admin') || !allowed) {
-        setTab('overview');
+      if ((!hasGuild && state.currentTab !== "premium-admin") || !allowed) {
+        setTab("overview");
       }
     }
   }
@@ -1153,8 +1343,8 @@ function setPanelLoading(panelId, isLoading) {
   function animateKpiValue(el, value) {
     const target = Number(value) || 0;
     if (!el) return;
-    el.textContent = '0';
-    el.classList.add('kpi-value--loading');
+    el.textContent = "0";
+    el.classList.add("kpi-value--loading");
     const duration = 500;
     const start = performance.now();
     function frame(now) {
@@ -1167,7 +1357,7 @@ function setPanelLoading(panelId, isLoading) {
         requestAnimationFrame(frame);
       } else {
         el.textContent = String(target);
-        el.classList.remove('kpi-value--loading');
+        el.classList.remove("kpi-value--loading");
       }
     }
     requestAnimationFrame(frame);
@@ -1175,32 +1365,37 @@ function setPanelLoading(panelId, isLoading) {
 
   function renderKpiTrend(trendEl, trend) {
     if (!trendEl) return;
-    if (!trend || typeof trend !== 'object') {
-      trendEl.classList.add('hidden');
+    if (!trend || typeof trend !== "object") {
+      trendEl.classList.add("hidden");
       return;
     }
     const dir = trend.direction; // 'up' | 'down' | 'neutral'
     const pct = trend.percent;
-    if (!dir || typeof pct !== 'number') {
-      trendEl.classList.add('hidden');
+    if (!dir || typeof pct !== "number") {
+      trendEl.classList.add("hidden");
       return;
     }
-    const arrow = dir === 'up' ? '↑' : dir === 'down' ? '↓' : '→';
-    trendEl.textContent = arrow + ' ' + Math.abs(Math.round(pct)) + '%';
-    trendEl.classList.remove('hidden', 'kpi__trend--up', 'kpi__trend--down', 'kpi__trend--neutral');
-    trendEl.classList.add('kpi__trend--' + dir);
+    const arrow = dir === "up" ? "↑" : dir === "down" ? "↓" : "→";
+    trendEl.textContent = arrow + " " + Math.abs(Math.round(pct)) + "%";
+    trendEl.classList.remove(
+      "hidden",
+      "kpi__trend--up",
+      "kpi__trend--down",
+      "kpi__trend--neutral",
+    );
+    trendEl.classList.add("kpi__trend--" + dir);
   }
 
   async function loadOverview() {
-    const guildsEl = document.getElementById('kpiGuilds');
-    const usersEl = document.getElementById('kpiUsers');
-    const actionsEl = document.getElementById('kpiActions24h');
+    const guildsEl = document.getElementById("kpiGuilds");
+    const usersEl = document.getElementById("kpiUsers");
+    const actionsEl = document.getElementById("kpiActions24h");
     if (!guildsEl || !usersEl || !actionsEl) return;
 
     try {
-      const data = await apiGet('/overview');
+      const data = await apiGet("/overview");
       if (!data || data.ok === false) {
-        throw new Error('Bad payload');
+        throw new Error("Bad payload");
       }
       animateKpiValue(guildsEl, data.guilds ?? 0);
       animateKpiValue(usersEl, data.users ?? 0);
@@ -1208,13 +1403,25 @@ function setPanelLoading(panelId, isLoading) {
 
       // Tendências (opcionais — a API pode incluir trends.guilds/users/actions)
       if (data.trends) {
-        renderKpiTrend(document.getElementById('kpiGuildsTrend'), data.trends.guilds);
-        renderKpiTrend(document.getElementById('kpiUsersTrend'), data.trends.users);
-        renderKpiTrend(document.getElementById('kpiActionsTrend'), data.trends.actions);
+        renderKpiTrend(
+          document.getElementById("kpiGuildsTrend"),
+          data.trends.guilds,
+        );
+        renderKpiTrend(
+          document.getElementById("kpiUsersTrend"),
+          data.trends.users,
+        );
+        renderKpiTrend(
+          document.getElementById("kpiActionsTrend"),
+          data.trends.actions,
+        );
       }
     } catch (err) {
-      console.error('Overview load error', err);
-      toast(err && err.apiMessage ? err.apiMessage : t('overview_error_generic'), { type: 'error' });
+      console.error("Overview load error", err);
+      toast(
+        err && err.apiMessage ? err.apiMessage : t("overview_error_generic"),
+        { type: "error" },
+      );
     }
   }
 
@@ -1223,44 +1430,55 @@ function setPanelLoading(panelId, isLoading) {
   // -----------------------------
 
   async function loadGuilds() {
-    const select = document.getElementById('guildPicker');
+    const select = document.getElementById("guildPicker");
     if (!select) return;
 
     state.guildsLoaded = false;
 
-    select.innerHTML = '';
-    const optLoading = document.createElement('option');
-    optLoading.value = '';
-    optLoading.textContent = t('guilds_loading_option');
+    select.innerHTML = "";
+    const optLoading = document.createElement("option");
+    optLoading.value = "";
+    optLoading.textContent = t("guilds_loading_option");
     select.appendChild(optLoading);
 
     try {
-      const res = await apiGet('/guilds');
-      if (res && res.reason === 'NO_ELIGIBLE_GUILDS') {
+      const res = await apiGet("/guilds");
+      if (res && res.reason === "NO_ELIGIBLE_GUILDS") {
         // User has no eligible guilds (must be owner or Administrator). Force logout and show login message.
-        try { await forceLogout(); } catch (e) {}
-        try { if (typeof window.OzarkDashboard.showLogin === 'function') window.OzarkDashboard.showLogin(); } catch (e) {}
+        try {
+          await forceLogout();
+        } catch {}
+        try {
+          if (typeof window.OzarkDashboard.showLogin === "function")
+            window.OzarkDashboard.showLogin();
+        } catch {}
         return;
       }
       const items = (res && res.items) || [];
       state.guilds = items;
-      select.innerHTML = '';
+      select.innerHTML = "";
 
       var returnParams = new URLSearchParams(window.location.search);
-      var paymentReturnStatus = returnParams.get('premiumPayment');
-      var paymentReturnGuildId = returnParams.get('guildId');
-      if (paymentReturnStatus && paymentReturnGuildId && items.some(function (g) { return g && g.id === paymentReturnGuildId; })) {
+      var paymentReturnStatus = returnParams.get("premiumPayment");
+      var paymentReturnGuildId = returnParams.get("guildId");
+      if (
+        paymentReturnStatus &&
+        paymentReturnGuildId &&
+        items.some(function (g) {
+          return g && g.id === paymentReturnGuildId;
+        })
+      ) {
         state.guildId = paymentReturnGuildId;
         setStoredGuildId(state.guildId);
       }
 
-      const optEmpty = document.createElement('option');
-      optEmpty.value = '';
-      optEmpty.textContent = t('select_guild');
+      const optEmpty = document.createElement("option");
+      optEmpty.value = "";
+      optEmpty.textContent = t("select_guild");
       select.appendChild(optEmpty);
 
       items.forEach(function (g) {
-        const opt = document.createElement('option');
+        const opt = document.createElement("option");
         opt.value = g.id;
         opt.dataset.guildName = g.name;
         opt.textContent = g.name;
@@ -1270,7 +1488,12 @@ function setPanelLoading(panelId, isLoading) {
       // Restore last selected guild if present and still allowed.
       if (!state.guildId) {
         var stored = getStoredGuildId();
-        if (stored && items.some(function (g) { return g && g.id === stored; })) {
+        if (
+          stored &&
+          items.some(function (g) {
+            return g && g.id === stored;
+          })
+        ) {
           state.guildId = stored;
         }
       }
@@ -1290,50 +1513,78 @@ function setPanelLoading(panelId, isLoading) {
         if (!scopedOk) {
           // If the stored/selected guild is no longer allowed, clear it and force the selector.
           state.guildId = null;
-          try { localStorage.removeItem(GUILD_KEY); } catch (e) {}
-          select.value = '';
-          try { window.OzarkDashboard.showGuildSelect(items); } catch (e) {}
+          try {
+            localStorage.removeItem(GUILD_KEY);
+          } catch {}
+          select.value = "";
+          try {
+            window.OzarkDashboard.showGuildSelect(items);
+          } catch {}
           updateTabAccess();
           return;
         }
         await loadGuildDashboardLanguage(state.guildId);
         updateTabAccess();
-        try { refreshGlobalBanner(); } catch (e) {}
+        try {
+          refreshGlobalBanner();
+        } catch {}
         if (paymentReturnStatus) {
-          if (paymentReturnStatus === 'success') setTab('features');
-          window.dispatchEvent(new CustomEvent('dashboard:premium-return', {
-            detail: { status: paymentReturnStatus, guildId: state.guildId }
-          }));
-          returnParams.delete('premiumPayment');
-          returnParams.delete('guildId');
+          if (paymentReturnStatus === "success") setTab("features");
+          window.dispatchEvent(
+            new CustomEvent("dashboard:premium-return", {
+              detail: { status: paymentReturnStatus, guildId: state.guildId },
+            }),
+          );
+          returnParams.delete("premiumPayment");
+          returnParams.delete("guildId");
           var returnQuery = returnParams.toString();
-          window.history.replaceState(null, '', window.location.pathname + (returnQuery ? '?' + returnQuery : '') + window.location.hash);
+          window.history.replaceState(
+            null,
+            "",
+            window.location.pathname +
+              (returnQuery ? "?" + returnQuery : "") +
+              window.location.hash,
+          );
         }
       } else {
         // Force selection when multiple guilds are available.
-        try { window.OzarkDashboard.showGuildSelect(items); } catch (e) {}
+        try {
+          window.OzarkDashboard.showGuildSelect(items);
+        } catch {}
         updateTabAccess();
-        try { refreshGlobalBanner(); } catch (e) {}
+        try {
+          refreshGlobalBanner();
+        } catch {}
       }
     } catch (err) {
-      console.error('Failed to load guilds', err);
-      toast(err && err.apiMessage ? err.apiMessage : t('guilds_error_generic'), { type: 'error' });
+      console.error("Failed to load guilds", err);
+      toast(
+        err && err.apiMessage ? err.apiMessage : t("guilds_error_generic"),
+        { type: "error" },
+      );
       state.guildsLoaded = true;
       updateTabAccess();
-      try { refreshGlobalBanner(); } catch (e) {}
+      try {
+        refreshGlobalBanner();
+      } catch {}
     }
   }
 
   async function loadMe() {
     try {
-      const res = await apiGet('/auth/me');
-      state.me = (res && res.user) ? res.user : null;
-      state.perms = (state.me && state.me.permissions && typeof state.me.permissions === 'object') ? state.me.permissions : {};
+      const res = await apiGet("/auth/me");
+      state.me = res && res.user ? res.user : null;
+      state.perms =
+        state.me &&
+        state.me.permissions &&
+        typeof state.me.permissions === "object"
+          ? state.me.permissions
+          : {};
       applyPermissionGates();
       updateTabAccess();
       updateAccessBadges();
       updateSessionBadge();
-    } catch (e) {
+    } catch {
       state.me = null;
       state.perms = {};
       clearSessionStart();
@@ -1346,20 +1597,25 @@ function setPanelLoading(panelId, isLoading) {
 
   function applyPermissionGates() {
     // Trust controls live inside the Config tab (Extras -> Trust).
-    const canEdit = !!(state.me && (state.me.role === 'BOT_ADMIN' || state.me.role === 'BOT_OWNER' || state.perms.canEditConfig));
+    const canEdit = !!(
+      state.me &&
+      (state.me.role === "BOT_ADMIN" ||
+        state.me.role === "BOT_OWNER" ||
+        state.perms.canEditConfig)
+    );
     const trustInputs = [
-      'trustPresetSelect',
-      'btnApplyTrustPreset',
-      'btnSaveTrustConfig',
-      'trustBaseInput',
-      'trustMinInput',
-      'trustMaxInput',
-      'trustWarnPenaltyInput',
-      'trustMutePenaltyInput',
-      'trustRegenPerDayInput',
-      'trustRegenMaxDaysInput',
-      'trustLowThresholdInput',
-      'trustHighThresholdInput'
+      "trustPresetSelect",
+      "btnApplyTrustPreset",
+      "btnSaveTrustConfig",
+      "trustBaseInput",
+      "trustMinInput",
+      "trustMaxInput",
+      "trustWarnPenaltyInput",
+      "trustMutePenaltyInput",
+      "trustRegenPerDayInput",
+      "trustRegenMaxDaysInput",
+      "trustLowThresholdInput",
+      "trustHighThresholdInput",
     ];
     trustInputs.forEach(function (id) {
       const el = document.getElementById(id);
@@ -1386,7 +1642,7 @@ function setPanelLoading(panelId, isLoading) {
       lowTrustMessagesPenalty: 2,
       highTrustMessagesBonus: 1,
       lowTrustMuteMultiplier: 2.0,
-      highTrustMuteMultiplier: 0.6
+      highTrustMuteMultiplier: 0.6,
     },
     strict: {
       base: 40,
@@ -1402,7 +1658,7 @@ function setPanelLoading(panelId, isLoading) {
       lowTrustMessagesPenalty: 2,
       highTrustMessagesBonus: 0,
       lowTrustMuteMultiplier: 2.2,
-      highTrustMuteMultiplier: 0.7
+      highTrustMuteMultiplier: 0.7,
     },
     relaxed: {
       base: 60,
@@ -1418,8 +1674,8 @@ function setPanelLoading(panelId, isLoading) {
       lowTrustMessagesPenalty: 1,
       highTrustMessagesBonus: 2,
       lowTrustMuteMultiplier: 1.6,
-      highTrustMuteMultiplier: 0.55
-    }
+      highTrustMuteMultiplier: 0.55,
+    },
   };
 
   function readNum(id) {
@@ -1432,34 +1688,34 @@ function setPanelLoading(panelId, isLoading) {
   function setNum(id, value) {
     const el = document.getElementById(id);
     if (!el) return;
-    el.value = (value === null || value === undefined) ? '' : String(value);
+    el.value = value === null || value === undefined ? "" : String(value);
   }
 
   function getTrustInputs() {
     return {
-      base: readNum('trustBaseInput'),
-      min: readNum('trustMinInput'),
-      max: readNum('trustMaxInput'),
-      warnPenalty: readNum('trustWarnPenaltyInput'),
-      mutePenalty: readNum('trustMutePenaltyInput'),
-      regenPerDay: readNum('trustRegenPerDayInput'),
-      regenMaxDays: readNum('trustRegenMaxDaysInput'),
-      lowThreshold: readNum('trustLowThresholdInput'),
-      highThreshold: readNum('trustHighThresholdInput')
+      base: readNum("trustBaseInput"),
+      min: readNum("trustMinInput"),
+      max: readNum("trustMaxInput"),
+      warnPenalty: readNum("trustWarnPenaltyInput"),
+      mutePenalty: readNum("trustMutePenaltyInput"),
+      regenPerDay: readNum("trustRegenPerDayInput"),
+      regenMaxDays: readNum("trustRegenMaxDaysInput"),
+      lowThreshold: readNum("trustLowThresholdInput"),
+      highThreshold: readNum("trustHighThresholdInput"),
     };
   }
 
   function setTrustInputs(cfg) {
     const c = cfg || {};
-    setNum('trustBaseInput', c.base);
-    setNum('trustMinInput', c.min);
-    setNum('trustMaxInput', c.max);
-    setNum('trustWarnPenaltyInput', c.warnPenalty);
-    setNum('trustMutePenaltyInput', c.mutePenalty);
-    setNum('trustRegenPerDayInput', c.regenPerDay);
-    setNum('trustRegenMaxDaysInput', c.regenMaxDays);
-    setNum('trustLowThresholdInput', c.lowThreshold);
-    setNum('trustHighThresholdInput', c.highThreshold);
+    setNum("trustBaseInput", c.base);
+    setNum("trustMinInput", c.min);
+    setNum("trustMaxInput", c.max);
+    setNum("trustWarnPenaltyInput", c.warnPenalty);
+    setNum("trustMutePenaltyInput", c.mutePenalty);
+    setNum("trustRegenPerDayInput", c.regenPerDay);
+    setNum("trustRegenMaxDaysInput", c.regenMaxDays);
+    setNum("trustLowThresholdInput", c.lowThreshold);
+    setNum("trustHighThresholdInput", c.highThreshold);
   }
 
   function nearlyEqual(a, b) {
@@ -1469,33 +1725,60 @@ function setPanelLoading(panelId, isLoading) {
   function detectTrustPreset(cfg) {
     const c = cfg || {};
     const keys = [
-      'base','min','max',
-      'warnPenalty','mutePenalty',
-      'regenPerDay','regenMaxDays',
-      'lowThreshold','highThreshold',
-      'lowTrustWarningsPenalty','lowTrustMessagesPenalty','highTrustMessagesBonus',
-      'lowTrustMuteMultiplier','highTrustMuteMultiplier'
+      "base",
+      "min",
+      "max",
+      "warnPenalty",
+      "mutePenalty",
+      "regenPerDay",
+      "regenMaxDays",
+      "lowThreshold",
+      "highThreshold",
+      "lowTrustWarningsPenalty",
+      "lowTrustMessagesPenalty",
+      "highTrustMessagesBonus",
+      "lowTrustMuteMultiplier",
+      "highTrustMuteMultiplier",
     ];
     for (const [name, preset] of Object.entries(TRUST_PRESETS)) {
       const ok = keys.every((k) => nearlyEqual(c[k], preset[k]));
       if (ok) return name;
     }
-    return 'custom';
+    return "custom";
   }
 
   function validateTrustCore(cfg) {
     const c = cfg || {};
-    const req = ['base','min','max','warnPenalty','mutePenalty','regenPerDay','regenMaxDays','lowThreshold','highThreshold'];
+    const req = [
+      "base",
+      "min",
+      "max",
+      "warnPenalty",
+      "mutePenalty",
+      "regenPerDay",
+      "regenMaxDays",
+      "lowThreshold",
+      "highThreshold",
+    ];
     const allFieldIds = [
-      'trustBaseInput','trustMinInput','trustMaxInput',
-      'trustWarnPenaltyInput','trustMutePenaltyInput',
-      'trustRegenPerDayInput','trustRegenMaxDaysInput',
-      'trustLowThresholdInput','trustHighThresholdInput'
+      "trustBaseInput",
+      "trustMinInput",
+      "trustMaxInput",
+      "trustWarnPenaltyInput",
+      "trustMutePenaltyInput",
+      "trustRegenPerDayInput",
+      "trustRegenMaxDaysInput",
+      "trustLowThresholdInput",
+      "trustHighThresholdInput",
     ];
 
     for (const k of req) {
       if (!Number.isFinite(Number(c[k]))) {
-        return { ok: false, msg: t('trust_invalid_numbers'), fields: allFieldIds };
+        return {
+          ok: false,
+          msg: t("trust_invalid_numbers"),
+          fields: allFieldIds,
+        };
       }
     }
 
@@ -1506,28 +1789,56 @@ function setPanelLoading(panelId, isLoading) {
     const high = Number(c.highThreshold);
 
     if (min < 0 || max > 100 || min >= max) {
-      return { ok: false, msg: t('trust_invalid_range'), fields: ['trustMinInput','trustMaxInput'] };
+      return {
+        ok: false,
+        msg: t("trust_invalid_range"),
+        fields: ["trustMinInput", "trustMaxInput"],
+      };
     }
     if (base < min || base > max) {
-      return { ok: false, msg: t('trust_invalid_base'), fields: ['trustBaseInput'] };
+      return {
+        ok: false,
+        msg: t("trust_invalid_base"),
+        fields: ["trustBaseInput"],
+      };
     }
     if (low < min || high > max || low >= high) {
-      return { ok: false, msg: t('trust_invalid_thresholds'), fields: ['trustLowThresholdInput','trustHighThresholdInput','trustMinInput','trustMaxInput'] };
+      return {
+        ok: false,
+        msg: t("trust_invalid_thresholds"),
+        fields: [
+          "trustLowThresholdInput",
+          "trustHighThresholdInput",
+          "trustMinInput",
+          "trustMaxInput",
+        ],
+      };
     }
     if (Number(c.warnPenalty) < 0 || Number(c.mutePenalty) < 0) {
-      return { ok: false, msg: t('trust_invalid_penalties'), fields: ['trustWarnPenaltyInput','trustMutePenaltyInput'] };
+      return {
+        ok: false,
+        msg: t("trust_invalid_penalties"),
+        fields: ["trustWarnPenaltyInput", "trustMutePenaltyInput"],
+      };
     }
     if (Number(c.regenPerDay) < 0 || Number(c.regenMaxDays) < 0) {
-      return { ok: false, msg: t('trust_invalid_regen'), fields: ['trustRegenPerDayInput','trustRegenMaxDaysInput'] };
+      return {
+        ok: false,
+        msg: t("trust_invalid_regen"),
+        fields: ["trustRegenPerDayInput", "trustRegenMaxDaysInput"],
+      };
     }
     return { ok: true };
   }
 
   function buildTrustPatch(core, presetKey) {
-    const k = (presetKey || 'custom');
+    const k = presetKey || "custom";
     const baseExtra = state.currentTrustConfig || TRUST_PRESETS.balanced;
     const presetExtra = TRUST_PRESETS[k];
-    const extra = (presetExtra && k !== 'custom') ? presetExtra : (state.trustExtraOverride || baseExtra);
+    const extra =
+      presetExtra && k !== "custom"
+        ? presetExtra
+        : state.trustExtraOverride || baseExtra;
 
     return {
       trust: {
@@ -1546,8 +1857,8 @@ function setPanelLoading(panelId, isLoading) {
         lowTrustMessagesPenalty: Number(extra.lowTrustMessagesPenalty),
         highTrustMessagesBonus: Number(extra.highTrustMessagesBonus),
         lowTrustMuteMultiplier: Number(extra.lowTrustMuteMultiplier),
-        highTrustMuteMultiplier: Number(extra.highTrustMuteMultiplier)
-      }
+        highTrustMuteMultiplier: Number(extra.highTrustMuteMultiplier),
+      },
     };
   }
 
@@ -1557,20 +1868,20 @@ function setPanelLoading(panelId, isLoading) {
 
   let _configStatusTimer = null;
   function setConfigStatus(msg, opts) {
-    var el = document.getElementById('configStatus');
+    var el = document.getElementById("configStatus");
     if (!el) return;
     if (_configStatusTimer) {
       clearTimeout(_configStatusTimer);
       _configStatusTimer = null;
     }
-    el.textContent = msg || '';
+    el.textContent = msg || "";
     const autoHideMs = opts && Number(opts.autoHideMs);
     if (msg && Number.isFinite(autoHideMs) && autoHideMs > 0) {
       _configStatusTimer = setTimeout(function () {
         // Only clear if we are not dirty (avoid hiding the UNSAVED state)
         if (!state.configDirty) {
-          const el2 = document.getElementById('configStatus');
-          if (el2) el2.textContent = '';
+          const el2 = document.getElementById("configStatus");
+          if (el2) el2.textContent = "";
         }
       }, autoHideMs);
     }
@@ -1578,14 +1889,14 @@ function setPanelLoading(panelId, isLoading) {
 
   function setConfigDirty(isDirty) {
     state.configDirty = !!isDirty;
-    var btn = document.getElementById('btnSaveGuildConfig');
+    var btn = document.getElementById("btnSaveGuildConfig");
     if (btn) btn.disabled = !state.configDirty;
 
     // UX: keep "unsaved" visible; do not keep "loaded" permanently.
     if (state.configDirty) {
-      setConfigStatus(t('config_status_unsaved'));
+      setConfigStatus(t("config_status_unsaved"));
     } else {
-      setConfigStatus('');
+      setConfigStatus("");
     }
   }
 
@@ -1595,24 +1906,24 @@ function setPanelLoading(panelId, isLoading) {
 
   function bindConfigDirtyListeners() {
     var ids = [
-      'configLogChannel',
-      'configDashboardLogChannel',
-      'configStaffRoles',
-      'staffRolesModeration',
-      'staffRolesTickets',
-      'configServerLanguage',
-      'configServerTimezone'
+      "configLogChannel",
+      "configDashboardLogChannel",
+      "configStaffRoles",
+      "staffRolesModeration",
+      "staffRolesTickets",
+      "configServerLanguage",
+      "configServerTimezone",
     ];
     ids.forEach(function (id) {
       var el = document.getElementById(id);
       if (!el || el.dataset.dirtyBound) return;
-      el.dataset.dirtyBound = '1';
+      el.dataset.dirtyBound = "1";
       function onDirty() {
         clearInlineError(el);
         markConfigDirty();
       }
-      el.addEventListener('change', onDirty);
-      el.addEventListener('input', onDirty);
+      el.addEventListener("change", onDirty);
+      el.addEventListener("input", onDirty);
     });
   }
 
@@ -1623,14 +1934,18 @@ function setPanelLoading(panelId, isLoading) {
     }
 
     const configGuildId = state.guildId;
-    const statusEl = document.getElementById('configStatus');
+    const statusEl = document.getElementById("configStatus");
     if (statusEl) {
-      statusEl.textContent = t('config_loading');
+      statusEl.textContent = t("config_loading");
     }
 
     try {
-      const meta = await apiGet('/guilds/' + encodeURIComponent(configGuildId) + '/meta');
-      const cfg = await apiGet('/guilds/' + encodeURIComponent(configGuildId) + '/config');
+      const meta = await apiGet(
+        "/guilds/" + encodeURIComponent(configGuildId) + "/meta",
+      );
+      const cfg = await apiGet(
+        "/guilds/" + encodeURIComponent(configGuildId) + "/config",
+      );
       if (state.guildId !== configGuildId) return;
 
       const channels = (meta && meta.channels) || [];
@@ -1647,48 +1962,57 @@ function setPanelLoading(panelId, isLoading) {
       state._guildMeta.categories = categories;
 
       // Server language / timezone (guild-level settings)
-      state.guildLanguage = (conf && typeof conf.language === 'string') ? conf.language : 'auto';
-      state.guildTimezone = (conf && typeof conf.timezone === 'string' && conf.timezone.trim()) ? conf.timezone.trim() : null;
+      state.guildLanguage =
+        conf && typeof conf.language === "string" ? conf.language : "auto";
+      state.guildTimezone =
+        conf && typeof conf.timezone === "string" && conf.timezone.trim()
+          ? conf.timezone.trim()
+          : null;
       await setDashboardLanguage(state.guildLanguage);
 
-
-
-      const logSelect = document.getElementById('configLogChannel');
-      const dashLogSelect = document.getElementById('configDashboardLogChannel');
-      const staffSelect = document.getElementById('configStaffRoles');
-      const langSelect = document.getElementById('configServerLanguage');
-      const tzSelect = document.getElementById('configServerTimezone');
-      if (langSelect) langSelect.value = state.guildLanguage || 'auto';
-      if (tzSelect) tzSelect.value = state.guildTimezone || '';
+      const logSelect = document.getElementById("configLogChannel");
+      const dashLogSelect = document.getElementById(
+        "configDashboardLogChannel",
+      );
+      const staffSelect = document.getElementById("configStaffRoles");
+      const langSelect = document.getElementById("configServerLanguage");
+      const tzSelect = document.getElementById("configServerTimezone");
+      if (langSelect) langSelect.value = state.guildLanguage || "auto";
+      if (tzSelect) tzSelect.value = state.guildTimezone || "";
 
       if (logSelect) {
-        logSelect.innerHTML = '';
-        const optNone = document.createElement('option');
-        optNone.value = '';
-        optNone.textContent = t('common_none_option');
+        logSelect.innerHTML = "";
+        const optNone = document.createElement("option");
+        optNone.value = "";
+        optNone.textContent = t("common_none_option");
         logSelect.appendChild(optNone);
 
         channels.forEach(function (ch) {
-          const opt = document.createElement('option');
+          const opt = document.createElement("option");
           opt.value = ch.id;
-          opt.textContent = '#' + ch.name + ' (' + ch.id + ')';
-          if (conf.logChannelId && conf.logChannelId === ch.id) opt.selected = true;
+          opt.textContent = "#" + ch.name + " (" + ch.id + ")";
+          if (conf.logChannelId && conf.logChannelId === ch.id)
+            opt.selected = true;
           logSelect.appendChild(opt);
         });
       }
 
       if (dashLogSelect) {
-        dashLogSelect.innerHTML = '';
-        const optNone2 = document.createElement('option');
-        optNone2.value = '';
-        optNone2.textContent = t('common_none_option');
+        dashLogSelect.innerHTML = "";
+        const optNone2 = document.createElement("option");
+        optNone2.value = "";
+        optNone2.textContent = t("common_none_option");
         dashLogSelect.appendChild(optNone2);
 
         channels.forEach(function (ch) {
-          const opt = document.createElement('option');
+          const opt = document.createElement("option");
           opt.value = ch.id;
-          opt.textContent = '#' + ch.name + ' (' + ch.id + ')';
-          if (conf.dashboardLogChannelId && conf.dashboardLogChannelId === ch.id) opt.selected = true;
+          opt.textContent = "#" + ch.name + " (" + ch.id + ")";
+          if (
+            conf.dashboardLogChannelId &&
+            conf.dashboardLogChannelId === ch.id
+          )
+            opt.selected = true;
           dashLogSelect.appendChild(opt);
         });
       }
@@ -1696,11 +2020,11 @@ function setPanelLoading(panelId, isLoading) {
       function fillRoleMultiSelect(sel, selectedIds) {
         if (!sel) return;
         const selected = Array.isArray(selectedIds) ? selectedIds : [];
-        sel.innerHTML = '';
+        sel.innerHTML = "";
         roles.forEach(function (r) {
-          const opt = document.createElement('option');
+          const opt = document.createElement("option");
           opt.value = r.id;
-          opt.textContent = '@' + r.name + ' (' + r.id + ')';
+          opt.textContent = "@" + r.name + " (" + r.id + ")";
           if (selected.indexOf(r.id) !== -1) opt.selected = true;
           sel.appendChild(opt);
         });
@@ -1708,8 +2032,14 @@ function setPanelLoading(panelId, isLoading) {
 
       fillRoleMultiSelect(staffSelect, conf.staffRoleIds);
       const staffByFeature = conf.staffRolesByFeature || {};
-      fillRoleMultiSelect(document.getElementById('staffRolesModeration'), staffByFeature.moderation);
-      fillRoleMultiSelect(document.getElementById('staffRolesTickets'), staffByFeature.tickets);
+      fillRoleMultiSelect(
+        document.getElementById("staffRolesModeration"),
+        staffByFeature.moderation,
+      );
+      fillRoleMultiSelect(
+        document.getElementById("staffRolesTickets"),
+        staffByFeature.tickets,
+      );
 
       function getSelectedValues(sel) {
         const out = [];
@@ -1731,23 +2061,23 @@ function setPanelLoading(panelId, isLoading) {
       // Role-picker UX: chips + add dropdown, backed by the hidden multi-select.
       function setupRolePicker(multiId) {
         const multi = document.getElementById(multiId);
-        const chips = document.getElementById(multiId + 'Chips');
-        const addSel = document.getElementById(multiId + 'Add');
-        const addBtn = document.getElementById(multiId + 'AddBtn');
+        const chips = document.getElementById(multiId + "Chips");
+        const addSel = document.getElementById(multiId + "Add");
+        const addBtn = document.getElementById(multiId + "AddBtn");
         if (!multi || !chips || !addSel || !addBtn) return;
 
         function rebuildAddOptions() {
           const selected = new Set(getSelectedValues(multi));
-          addSel.innerHTML = '';
-          const opt0 = document.createElement('option');
-          opt0.value = '';
-          opt0.textContent = t('config_rolepicker_placeholder');
+          addSel.innerHTML = "";
+          const opt0 = document.createElement("option");
+          opt0.value = "";
+          opt0.textContent = t("config_rolepicker_placeholder");
           addSel.appendChild(opt0);
 
           Array.prototype.forEach.call(multi.options || [], function (opt) {
             if (!opt || !opt.value) return;
             if (selected.has(opt.value)) return;
-            const o = document.createElement('option');
+            const o = document.createElement("option");
             o.value = opt.value;
             o.textContent = opt.textContent;
             addSel.appendChild(o);
@@ -1756,34 +2086,43 @@ function setPanelLoading(panelId, isLoading) {
 
         function renderChips() {
           const selected = getSelectedValues(multi);
-          chips.innerHTML = '';
+          chips.innerHTML = "";
 
           if (!selected.length) {
-            const empty = document.createElement('div');
-            empty.className = 'hint';
-            empty.textContent = t('config_rolepicker_empty');
+            const empty = document.createElement("div");
+            empty.className = "hint";
+            empty.textContent = t("config_rolepicker_empty");
             chips.appendChild(empty);
             return;
           }
 
           selected.forEach(function (id) {
-            const opt = Array.prototype.find.call(multi.options || [], function (o) { return o.value === id; });
+            const opt = Array.prototype.find.call(
+              multi.options || [],
+              function (o) {
+                return o.value === id;
+              },
+            );
             const label = opt ? opt.textContent : id;
 
-            const chip = document.createElement('div');
-            chip.className = 'role-chip';
+            const chip = document.createElement("div");
+            chip.className = "role-chip";
 
-            const name = document.createElement('span');
-            name.className = 'name';
+            const name = document.createElement("span");
+            name.className = "name";
             // Render as role name without the id suffix for readability.
-            name.textContent = label.replace(/\s*\([0-9]+\)\s*$/, '').replace(/^@/, '');
+            name.textContent = label
+              .replace(/\s*\([0-9]+\)\s*$/, "")
+              .replace(/^@/, "");
 
-            const rm = document.createElement('button');
-            rm.type = 'button';
-            rm.className = 'remove';
-            rm.textContent = '✕';
-            rm.addEventListener('click', function () {
-              const next = getSelectedValues(multi).filter(function (x) { return x !== id; });
+            const rm = document.createElement("button");
+            rm.type = "button";
+            rm.className = "remove";
+            rm.textContent = "✕";
+            rm.addEventListener("click", function () {
+              const next = getSelectedValues(multi).filter(function (x) {
+                return x !== id;
+              });
               setSelectedValues(multi, next);
               renderAll();
               markConfigDirty();
@@ -1801,8 +2140,8 @@ function setPanelLoading(panelId, isLoading) {
         }
 
         if (!addBtn.dataset.bound) {
-          addBtn.dataset.bound = '1';
-          addBtn.addEventListener('click', function () {
+          addBtn.dataset.bound = "1";
+          addBtn.addEventListener("click", function () {
             const id = addSel.value;
             if (!id) return;
             const current = getSelectedValues(multi);
@@ -1815,7 +2154,7 @@ function setPanelLoading(panelId, isLoading) {
           });
 
           // Keep chips in sync when presets apply/clear overrides.
-          multi.addEventListener('change', function () {
+          multi.addEventListener("change", function () {
             renderAll();
           });
         }
@@ -1824,73 +2163,110 @@ function setPanelLoading(panelId, isLoading) {
       }
 
       // Activate role picker for global staff roles.
-      setupRolePicker('configStaffRoles');
+      setupRolePicker("configStaffRoles");
 
       // Trust config preview (read-only, global)
       const trust = conf && conf.trust ? conf.trust : null;
-      const baseEl = document.getElementById('trustBaseValue');
-      const minMaxEl = document.getElementById('trustMinMaxValue');
-      const penaltiesEl = document.getElementById('trustPenaltiesValue');
-      const regenEl = document.getElementById('trustRegenValue');
-      const riskEl = document.getElementById('trustRiskValue');
+      const baseEl = document.getElementById("trustBaseValue");
+      const minMaxEl = document.getElementById("trustMinMaxValue");
+      const penaltiesEl = document.getElementById("trustPenaltiesValue");
+      const regenEl = document.getElementById("trustRegenValue");
+      const riskEl = document.getElementById("trustRiskValue");
 
-      const baseInput = document.getElementById('trustBaseInput');
-      const minInput = document.getElementById('trustMinInput');
-      const maxInput = document.getElementById('trustMaxInput');
-      const warnInput = document.getElementById('trustWarnPenaltyInput');
-      const muteInput = document.getElementById('trustMutePenaltyInput');
-      const regenPerDayInput = document.getElementById('trustRegenPerDayInput');
-      const regenMaxDaysInput = document.getElementById('trustRegenMaxDaysInput');
-      const lowThresholdInput = document.getElementById('trustLowThresholdInput');
-      const highThresholdInput = document.getElementById('trustHighThresholdInput');
+      const baseInput = document.getElementById("trustBaseInput");
+      const minInput = document.getElementById("trustMinInput");
+      const maxInput = document.getElementById("trustMaxInput");
+      const warnInput = document.getElementById("trustWarnPenaltyInput");
+      const muteInput = document.getElementById("trustMutePenaltyInput");
+      const regenPerDayInput = document.getElementById("trustRegenPerDayInput");
+      const regenMaxDaysInput = document.getElementById(
+        "trustRegenMaxDaysInput",
+      );
+      const lowThresholdInput = document.getElementById(
+        "trustLowThresholdInput",
+      );
+      const highThresholdInput = document.getElementById(
+        "trustHighThresholdInput",
+      );
 
       if (trust && baseEl && minMaxEl && penaltiesEl && regenEl && riskEl) {
         state.currentTrustConfig = trust;
-        const base = Number.isFinite(Number(trust.base)) ? Number(trust.base) : null;
-        const min = Number.isFinite(Number(trust.min)) ? Number(trust.min) : null;
-        const max = Number.isFinite(Number(trust.max)) ? Number(trust.max) : null;
+        const base = Number.isFinite(Number(trust.base))
+          ? Number(trust.base)
+          : null;
+        const min = Number.isFinite(Number(trust.min))
+          ? Number(trust.min)
+          : null;
+        const max = Number.isFinite(Number(trust.max))
+          ? Number(trust.max)
+          : null;
 
-        baseEl.textContent = base !== null ? String(base) : '—';
-        minMaxEl.textContent = min !== null && max !== null ? min + ' / ' + max : '—';
+        baseEl.textContent = base !== null ? String(base) : "—";
+        minMaxEl.textContent =
+          min !== null && max !== null ? min + " / " + max : "—";
 
-        if (baseInput) baseInput.value = base !== null ? String(base) : '';
+        if (baseInput) baseInput.value = base !== null ? String(base) : "";
 
-        if (minInput) minInput.value = min !== null ? String(min) : '';
-        if (maxInput) maxInput.value = max !== null ? String(max) : '';
+        if (minInput) minInput.value = min !== null ? String(min) : "";
+        if (maxInput) maxInput.value = max !== null ? String(max) : "";
 
-        const warnPenalty = Number.isFinite(Number(trust.warnPenalty)) ? Number(trust.warnPenalty) : null;
-        const mutePenalty = Number.isFinite(Number(trust.mutePenalty)) ? Number(trust.mutePenalty) : null;
+        const warnPenalty = Number.isFinite(Number(trust.warnPenalty))
+          ? Number(trust.warnPenalty)
+          : null;
+        const mutePenalty = Number.isFinite(Number(trust.mutePenalty))
+          ? Number(trust.mutePenalty)
+          : null;
         penaltiesEl.textContent =
           warnPenalty !== null && mutePenalty !== null
-            ? 'WARN: -' + warnPenalty + ' • MUTE: -' + mutePenalty
-            : '—';
+            ? "WARN: -" + warnPenalty + " • MUTE: -" + mutePenalty
+            : "—";
 
-        if (warnInput) warnInput.value = warnPenalty !== null ? String(warnPenalty) : '';
-        if (muteInput) muteInput.value = mutePenalty !== null ? String(mutePenalty) : '';
+        if (warnInput)
+          warnInput.value = warnPenalty !== null ? String(warnPenalty) : "";
+        if (muteInput)
+          muteInput.value = mutePenalty !== null ? String(mutePenalty) : "";
 
-        const regenPerDay = Number.isFinite(Number(trust.regenPerDay)) ? Number(trust.regenPerDay) : null;
-        const regenMaxDays = Number.isFinite(Number(trust.regenMaxDays)) ? Number(trust.regenMaxDays) : null;
+        const regenPerDay = Number.isFinite(Number(trust.regenPerDay))
+          ? Number(trust.regenPerDay)
+          : null;
+        const regenMaxDays = Number.isFinite(Number(trust.regenMaxDays))
+          ? Number(trust.regenMaxDays)
+          : null;
         regenEl.textContent =
           regenPerDay !== null && regenMaxDays !== null
-            ? regenPerDay + ' / dia até ' + regenMaxDays + ' dias'
-            : '—';
+            ? regenPerDay + " / dia até " + regenMaxDays + " dias"
+            : "—";
 
-        if (regenPerDayInput) regenPerDayInput.value = regenPerDay !== null ? String(regenPerDay) : '';
-        if (regenMaxDaysInput) regenMaxDaysInput.value = regenMaxDays !== null ? String(regenMaxDays) : '';
+        if (regenPerDayInput)
+          regenPerDayInput.value =
+            regenPerDay !== null ? String(regenPerDay) : "";
+        if (regenMaxDaysInput)
+          regenMaxDaysInput.value =
+            regenMaxDays !== null ? String(regenMaxDays) : "";
 
-        const lowT = Number.isFinite(Number(trust.lowTrustThreshold || trust.lowThreshold)) ? Number(trust.lowTrustThreshold || trust.lowThreshold) : null;
-        const highT = Number.isFinite(Number(trust.highTrustThreshold || trust.highThreshold)) ? Number(trust.highTrustThreshold || trust.highThreshold) : null;
+        const lowT = Number.isFinite(
+          Number(trust.lowTrustThreshold || trust.lowThreshold),
+        )
+          ? Number(trust.lowTrustThreshold || trust.lowThreshold)
+          : null;
+        const highT = Number.isFinite(
+          Number(trust.highTrustThreshold || trust.highThreshold),
+        )
+          ? Number(trust.highTrustThreshold || trust.highThreshold)
+          : null;
         if (lowT !== null && highT !== null) {
           riskEl.textContent = `< ${lowT} (risco) • > ${highT} (confiança)`;
         } else {
-          riskEl.textContent = '—';
+          riskEl.textContent = "—";
         }
 
-        if (lowThresholdInput) lowThresholdInput.value = lowT !== null ? String(lowT) : '';
-        if (highThresholdInput) highThresholdInput.value = highT !== null ? String(highT) : '';
+        if (lowThresholdInput)
+          lowThresholdInput.value = lowT !== null ? String(lowT) : "";
+        if (highThresholdInput)
+          highThresholdInput.value = highT !== null ? String(highT) : "";
 
         // Preset selection (best-effort)
-        var presetSelect = document.getElementById('trustPresetSelect');
+        var presetSelect = document.getElementById("trustPresetSelect");
         if (presetSelect) {
           presetSelect.value = detectTrustPreset(trust);
         }
@@ -1907,64 +2283,76 @@ function setPanelLoading(panelId, isLoading) {
         var defaultHighThreshold = 75;
 
         baseEl.textContent = String(defaultBase);
-        minMaxEl.textContent = defaultMin + ' / ' + defaultMax;
-        penaltiesEl.textContent = 'WARN: -' + defaultWarnPenalty + ' • MUTE: -' + defaultMutePenalty;
-        regenEl.textContent = defaultRegenPerDay + ' / dia até ' + defaultRegenMaxDays + ' dias';
-        riskEl.textContent = '< ' + defaultLowThreshold + ' (risco) • > ' + defaultHighThreshold + ' (confiança)';
+        minMaxEl.textContent = defaultMin + " / " + defaultMax;
+        penaltiesEl.textContent =
+          "WARN: -" + defaultWarnPenalty + " • MUTE: -" + defaultMutePenalty;
+        regenEl.textContent =
+          defaultRegenPerDay + " / dia até " + defaultRegenMaxDays + " dias";
+        riskEl.textContent =
+          "< " +
+          defaultLowThreshold +
+          " (risco) • > " +
+          defaultHighThreshold +
+          " (confiança)";
 
         if (baseInput) baseInput.value = String(defaultBase);
         if (minInput) minInput.value = String(defaultMin);
         if (maxInput) maxInput.value = String(defaultMax);
         if (warnInput) warnInput.value = String(defaultWarnPenalty);
         if (muteInput) muteInput.value = String(defaultMutePenalty);
-        if (regenPerDayInput) regenPerDayInput.value = String(defaultRegenPerDay);
-        if (regenMaxDaysInput) regenMaxDaysInput.value = String(defaultRegenMaxDays);
-        if (lowThresholdInput) lowThresholdInput.value = String(defaultLowThreshold);
-        if (highThresholdInput) highThresholdInput.value = String(defaultHighThreshold);
+        if (regenPerDayInput)
+          regenPerDayInput.value = String(defaultRegenPerDay);
+        if (regenMaxDaysInput)
+          regenMaxDaysInput.value = String(defaultRegenMaxDays);
+        if (lowThresholdInput)
+          lowThresholdInput.value = String(defaultLowThreshold);
+        if (highThresholdInput)
+          highThresholdInput.value = String(defaultHighThreshold);
 
         state.currentTrustConfig = Object.assign({}, TRUST_PRESETS.balanced);
-        var presetSelect2 = document.getElementById('trustPresetSelect');
-        if (presetSelect2) presetSelect2.value = 'balanced';
+        var presetSelect2 = document.getElementById("trustPresetSelect");
+        if (presetSelect2) presetSelect2.value = "balanced";
       }
 
       bindConfigDirtyListeners();
       setConfigDirty(false);
-      setConfigStatus(t('config_status_loaded'), { autoHideMs: 1200 });
-
+      setConfigStatus(t("config_status_loaded"), { autoHideMs: 1200 });
     } catch (err) {
-      console.error('Failed to load guild config', err);
-      setConfigStatus(t('config_error_generic'));
+      console.error("Failed to load guild config", err);
+      setConfigStatus(t("config_error_generic"));
     }
   }
 
   async function loadTrustSummary() {
-    const box = document.getElementById('trustDistribution');
+    const box = document.getElementById("trustDistribution");
     if (!box) return;
 
     if (!state.guildId) {
-      box.innerHTML = '';
+      box.innerHTML = "";
       return;
     }
 
     function renderHint(text) {
-      box.innerHTML = '<div class="hint">' + escapeHtml(text) + '</div>';
+      box.innerHTML = '<div class="hint">' + escapeHtml(text) + "</div>";
     }
 
     try {
-      const data = await apiGet('/trust/summary?guildId=' + encodeURIComponent(state.guildId));
+      const data = await apiGet(
+        "/trust/summary?guildId=" + encodeURIComponent(state.guildId),
+      );
 
       if (!data || data.ok === false) {
-        renderHint(t('trust_distribution_error'));
+        renderHint(t("trust_distribution_error"));
         return;
       }
       if (data.disabled) {
-        renderHint(t('trust_distribution_disabled'));
+        renderHint(t("trust_distribution_disabled"));
         return;
       }
 
       const total = Number(data.totalUsers) || 0;
       if (!total) {
-        renderHint(t('trust_distribution_empty'));
+        renderHint(t("trust_distribution_empty"));
         return;
       }
 
@@ -1978,15 +2366,27 @@ function setPanelLoading(panelId, isLoading) {
       }
 
       const rows = [
-        { cls: 'trust-dist-high', label: t('trust_distribution_high'), count: high },
-        { cls: 'trust-dist-medium', label: t('trust_distribution_medium'), count: medium },
-        { cls: 'trust-dist-low', label: t('trust_distribution_low'), count: low }
+        {
+          cls: "trust-dist-high",
+          label: t("trust_distribution_high"),
+          count: high,
+        },
+        {
+          cls: "trust-dist-medium",
+          label: t("trust_distribution_medium"),
+          count: medium,
+        },
+        {
+          cls: "trust-dist-low",
+          label: t("trust_distribution_low"),
+          count: low,
+        },
       ];
 
       let html =
         '<div class="trust-dist-total">' +
-        escapeHtml(t('trust_distribution_total', { total: total })) +
-        '</div>';
+        escapeHtml(t("trust_distribution_total", { total: total })) +
+        "</div>";
 
       rows.forEach(function (r) {
         const p = pct(r.count);
@@ -1994,7 +2394,7 @@ function setPanelLoading(panelId, isLoading) {
           '<div class="trust-dist-row">' +
           '<div class="trust-dist-label">' +
           escapeHtml(r.label) +
-          '</div>' +
+          "</div>" +
           '<div class="trust-dist-bar"><span class="trust-dist-fill ' +
           r.cls +
           '" style="width:' +
@@ -2002,590 +2402,689 @@ function setPanelLoading(panelId, isLoading) {
           '%"></span></div>' +
           '<div class="trust-dist-value">' +
           r.count +
-          ' (' +
+          " (" +
           p +
-          '%)</div>' +
-          '</div>';
+          "%)</div>" +
+          "</div>";
       });
 
       box.innerHTML = html;
     } catch (err) {
-      console.error('Failed to load trust summary', err);
-      renderHint(t('trust_distribution_error'));
+      console.error("Failed to load trust summary", err);
+      renderHint(t("trust_distribution_error"));
     }
   }
 
   window.OzarkDashboard.loadPremiumModuleData = function (module) {
     switch (module) {
-      case 'gamenews':
+      case "gamenews":
         return window.OzarkDashboard.loadGameNews
           ? window.OzarkDashboard.loadGameNews()
-          : Promise.reject(new Error('GAMENEWS_LOADER_UNAVAILABLE'));
-      case 'tempvoice':
+          : Promise.reject(new Error("GAMENEWS_LOADER_UNAVAILABLE"));
+      case "tempvoice":
         return Promise.all([loadTempVoiceConfig(), loadTempVoiceActive()]);
-      case 'tickets':
+      case "tickets":
         return window.OzarkDashboard.loadTickets
           ? window.OzarkDashboard.loadTickets(true)
-          : Promise.reject(new Error('TICKETS_LOADER_UNAVAILABLE'));
-      case 'trust':
+          : Promise.reject(new Error("TICKETS_LOADER_UNAVAILABLE"));
+      case "trust":
         return loadTrustSummary();
-      case 'giveaways':
+      case "giveaways":
         return window.OzarkDashboard.loadGiveaways
           ? window.OzarkDashboard.loadGiveaways()
-          : Promise.reject(new Error('GIVEAWAYS_LOADER_UNAVAILABLE'));
+          : Promise.reject(new Error("GIVEAWAYS_LOADER_UNAVAILABLE"));
       default:
-        return Promise.reject(new Error('UNKNOWN_PREMIUM_MODULE: ' + module));
+        return Promise.reject(new Error("UNKNOWN_PREMIUM_MODULE: " + module));
     }
   };
 
-    async function saveGuildConfig() {
-      if (!state.guildId) return;
+  async function saveGuildConfig() {
+    if (!state.guildId) return;
 
-      if (!state.configDirty) {
-        toast(t('config_nothing_to_save'), { type: 'info' });
-        return;
-      }
+    if (!state.configDirty) {
+      toast(t("config_nothing_to_save"), { type: "info" });
+      return;
+    }
 
-      setConfigStatus(t('config_loading'));
+    setConfigStatus(t("config_loading"));
 
-      const logSelect = document.getElementById('configLogChannel');
-      const dashLogSelect = document.getElementById('configDashboardLogChannel');
-      const staffSelect = document.getElementById('configStaffRoles');
-      const statusEl = document.getElementById('configStatus');
-      const langSelect = document.getElementById('configServerLanguage');
-      const tzSelect = document.getElementById('configServerTimezone');
+    const logSelect = document.getElementById("configLogChannel");
+    const dashLogSelect = document.getElementById("configDashboardLogChannel");
+    const staffSelect = document.getElementById("configStaffRoles");
+    const langSelect = document.getElementById("configServerLanguage");
+    const tzSelect = document.getElementById("configServerTimezone");
 
-      const logChannelId = logSelect && logSelect.value ? logSelect.value : null;
-      const dashLogChannelId = dashLogSelect && dashLogSelect.value ? dashLogSelect.value : null;
-      const staffRoleIds = [];
-      if (staffSelect) {
-        Array.prototype.forEach.call(staffSelect.selectedOptions || [], function (opt) {
+    const logChannelId = logSelect && logSelect.value ? logSelect.value : null;
+    const dashLogChannelId =
+      dashLogSelect && dashLogSelect.value ? dashLogSelect.value : null;
+    const staffRoleIds = [];
+    if (staffSelect) {
+      Array.prototype.forEach.call(
+        staffSelect.selectedOptions || [],
+        function (opt) {
           if (opt.value) staffRoleIds.push(opt.value);
-        });
-      }
-      function selectedRoles(id) {
-        const select = document.getElementById(id);
-        return select ? Array.prototype.map.call(select.selectedOptions || [], function (option) { return option.value; }).filter(Boolean) : [];
-      }
-      const staffRolesByFeature = {
-        moderation: selectedRoles('staffRolesModeration'),
-        tickets: selectedRoles('staffRolesTickets')
-      };
+        },
+      );
+    }
+    function selectedRoles(id) {
+      const select = document.getElementById(id);
+      return select
+        ? Array.prototype.map
+            .call(select.selectedOptions || [], function (option) {
+              return option.value;
+            })
+            .filter(Boolean)
+        : [];
+    }
+    const staffRolesByFeature = {
+      moderation: selectedRoles("staffRolesModeration"),
+      tickets: selectedRoles("staffRolesTickets"),
+    };
 
-      const language = langSelect && langSelect.value ? langSelect.value : 'auto';
-      const timezone = tzSelect && tzSelect.value ? tzSelect.value.trim() || null : null;
+    const language = langSelect && langSelect.value ? langSelect.value : "auto";
+    const timezone =
+      tzSelect && tzSelect.value ? tzSelect.value.trim() || null : null;
 
-      // Inline validation (low risk): validate IDs and timezone format before POST
-      function isSnowflake(id) {
-        return typeof id === 'string' && /^\d{5,25}$/.test(id);
-      }
+    // Inline validation (low risk): validate IDs and timezone format before POST
+    function isSnowflake(id) {
+      return typeof id === "string" && /^\d{5,25}$/.test(id);
+    }
 
-      // Clear previous field errors
-      clearInlineError(logSelect);
-      clearInlineError(dashLogSelect);
-      clearInlineError(staffSelect);
-      clearInlineError(tzSelect);
+    // Clear previous field errors
+    clearInlineError(logSelect);
+    clearInlineError(dashLogSelect);
+    clearInlineError(staffSelect);
+    clearInlineError(tzSelect);
 
-      if (logChannelId && !isSnowflake(logChannelId)) {
-        setInlineError(logSelect, t('config_invalid_channel_id'));
-        toast(t('config_invalid_channel_id'), { type: 'warn' });
+    if (logChannelId && !isSnowflake(logChannelId)) {
+      setInlineError(logSelect, t("config_invalid_channel_id"));
+      toast(t("config_invalid_channel_id"), { type: "warn" });
+      return;
+    }
+    if (dashLogChannelId && !isSnowflake(dashLogChannelId)) {
+      setInlineError(dashLogSelect, t("config_invalid_channel_id"));
+      toast(t("config_invalid_channel_id"), { type: "warn" });
+      return;
+    }
+    var allRoleIds = staffRoleIds.concat.apply(
+      staffRoleIds,
+      Object.keys(staffRolesByFeature).map(function (key) {
+        return staffRolesByFeature[key];
+      }),
+    );
+
+    for (var i = 0; i < allRoleIds.length; i++) {
+      if (allRoleIds[i] && !isSnowflake(allRoleIds[i])) {
+        // Mark the most relevant select
+        setInlineError(staffSelect, t("config_invalid_role_id"));
+        toast(t("config_invalid_role_id"), { type: "warn" });
         return;
       }
-      if (dashLogChannelId && !isSnowflake(dashLogChannelId)) {
-        setInlineError(dashLogSelect, t('config_invalid_channel_id'));
-        toast(t('config_invalid_channel_id'), { type: 'warn' });
+    }
+
+    if (timezone) {
+      var tzOk =
+        /^[A-Za-z_]+\/[A-Za-z_]+(\/[A-Za-z_]+)?$/.test(timezone) ||
+        /^UTC$/i.test(timezone) ||
+        /^Etc\/(GMT|UTC)([+-]?\d{1,2})?$/.test(timezone);
+      if (!tzOk) {
+        setInlineError(tzSelect, t("config_invalid_timezone"));
+        toast(t("config_invalid_timezone"), { type: "warn" });
         return;
       }
-      var allRoleIds = staffRoleIds.concat.apply(staffRoleIds, Object.keys(staffRolesByFeature).map(function (key) { return staffRolesByFeature[key]; }));
+    }
 
-      for (var i = 0; i < allRoleIds.length; i++) {
-        if (allRoleIds[i] && !isSnowflake(allRoleIds[i])) {
-          // Mark the most relevant select
-          setInlineError(staffSelect, t('config_invalid_role_id'));
-          toast(t('config_invalid_role_id'), { type: 'warn' });
-          return;
-        }
-      }
-
-      if (timezone) {
-        var tzOk = /^[A-Za-z_]+\/[A-Za-z_]+(\/[A-Za-z_]+)?$/.test(timezone)
-          || /^UTC$/i.test(timezone)
-          || /^Etc\/(GMT|UTC)([+-]?\d{1,2})?$/.test(timezone);
-        if (!tzOk) {
-          setInlineError(tzSelect, t('config_invalid_timezone'));
-          toast(t('config_invalid_timezone'), { type: 'warn' });
-          return;
-        }
-      }
-
-      try {
-        await apiPost('/guilds/' + encodeURIComponent(state.guildId) + '/config', {
+    try {
+      await apiPost(
+        "/guilds/" + encodeURIComponent(state.guildId) + "/config",
+        {
           logChannelId: logChannelId,
           dashboardLogChannelId: dashLogChannelId,
           staffRoleIds: staffRoleIds,
           staffRolesByFeature: staffRolesByFeature,
           language: language,
           timezone: timezone,
-        });
+        },
+      );
 
-        state.guildLanguage = language;
-        state.guildTimezone = timezone;
-        await setDashboardLanguage(language);
+      state.guildLanguage = language;
+      state.guildTimezone = timezone;
+      await setDashboardLanguage(language);
 
-        if (window.OzarkDashboard.loadFeatures) {
-          await window.OzarkDashboard.loadFeatures().catch(function () {});
-        }
-
-        // mark clean + update UI
-        state.configDirty = false;
-        var btnSave = document.getElementById('btnSaveGuildConfig');
-        if (btnSave) btnSave.disabled = true;
-        setConfigStatus('');
-        toast(t('config_saved'), { type: 'success' });
-      } catch (err) {
-        console.error('Failed to save guild config', err);
-        setConfigStatus('');
-        toast(t('config_error_save'), { type: 'error' });
+      if (window.OzarkDashboard.loadFeatures) {
+        await window.OzarkDashboard.loadFeatures().catch(function () {});
       }
+
+      // mark clean + update UI
+      state.configDirty = false;
+      var btnSave = document.getElementById("btnSaveGuildConfig");
+      if (btnSave) btnSave.disabled = true;
+      setConfigStatus("");
+      toast(t("config_saved"), { type: "success" });
+    } catch (err) {
+      console.error("Failed to save guild config", err);
+      setConfigStatus("");
+      toast(t("config_error_save"), { type: "error" });
     }
+  }
 
-    async function loadBotMaintenance() {
-      const panel = document.getElementById('botMaintenancePanel');
-      const enabled = document.getElementById('configMaintenanceEnabled');
-      const message = document.getElementById('configMaintenanceMessage');
-      const allowStaff = document.getElementById('configMaintenanceAllowStaff');
-      const saveButton = document.getElementById('btnSaveBotMaintenance');
-      const status = document.getElementById('botMaintenanceStatus');
-      if (!panel || !state.me || state.me.role !== 'BOT_OWNER') return;
-      if (!state.guildId) {
-        if (enabled) enabled.disabled = true;
-        if (message) message.disabled = true;
-        if (allowStaff) allowStaff.disabled = true;
-        if (saveButton) saveButton.disabled = true;
-        if (status) status.textContent = t('management_select_guild');
-        return;
-      }
-      if (status) status.textContent = t('config_loading');
-      try {
-        const result = await apiGet('/guilds/' + encodeURIComponent(state.guildId) + '/maintenance');
-        const maintenance = result && result.maintenanceMode || {};
-        if (enabled) {
-          enabled.value = maintenance.enabled === true ? 'true' : 'false';
-          enabled.disabled = false;
-        }
-        if (message) {
-          message.value = typeof maintenance.message === 'string' ? maintenance.message : '';
-          message.disabled = false;
-        }
-        if (allowStaff) {
-          allowStaff.value = maintenance.allowStaff === false ? 'false' : 'true';
-          allowStaff.disabled = false;
-        }
-        if (saveButton) saveButton.disabled = false;
-        if (status) status.textContent = '';
-      } catch (error) {
-        if (status) status.textContent = t('config_error_load');
-        if (saveButton) saveButton.disabled = true;
-      }
-    }
-
-    async function saveBotMaintenance() {
-      if (!state.guildId || !state.me || state.me.role !== 'BOT_OWNER') return;
-      const enabled = document.getElementById('configMaintenanceEnabled');
-      const message = document.getElementById('configMaintenanceMessage');
-      const allowStaff = document.getElementById('configMaintenanceAllowStaff');
-      const saveButton = document.getElementById('btnSaveBotMaintenance');
-      const status = document.getElementById('botMaintenanceStatus');
+  async function loadBotMaintenance() {
+    const panel = document.getElementById("botMaintenancePanel");
+    const enabled = document.getElementById("configMaintenanceEnabled");
+    const message = document.getElementById("configMaintenanceMessage");
+    const allowStaff = document.getElementById("configMaintenanceAllowStaff");
+    const saveButton = document.getElementById("btnSaveBotMaintenance");
+    const status = document.getElementById("botMaintenanceStatus");
+    if (!panel || !state.me || state.me.role !== "BOT_OWNER") return;
+    if (!state.guildId) {
+      if (enabled) enabled.disabled = true;
+      if (message) message.disabled = true;
+      if (allowStaff) allowStaff.disabled = true;
       if (saveButton) saveButton.disabled = true;
-      if (status) status.textContent = t('config_loading');
-      try {
-        await apiPatch('/guilds/' + encodeURIComponent(state.guildId) + '/maintenance', {
+      if (status) status.textContent = t("management_select_guild");
+      return;
+    }
+    if (status) status.textContent = t("config_loading");
+    try {
+      const result = await apiGet(
+        "/guilds/" + encodeURIComponent(state.guildId) + "/maintenance",
+      );
+      const maintenance = (result && result.maintenanceMode) || {};
+      if (enabled) {
+        enabled.value = maintenance.enabled === true ? "true" : "false";
+        enabled.disabled = false;
+      }
+      if (message) {
+        message.value =
+          typeof maintenance.message === "string" ? maintenance.message : "";
+        message.disabled = false;
+      }
+      if (allowStaff) {
+        allowStaff.value = maintenance.allowStaff === false ? "false" : "true";
+        allowStaff.disabled = false;
+      }
+      if (saveButton) saveButton.disabled = false;
+      if (status) status.textContent = "";
+    } catch {
+      if (status) status.textContent = t("config_error_load");
+      if (saveButton) saveButton.disabled = true;
+    }
+  }
+
+  async function saveBotMaintenance() {
+    if (!state.guildId || !state.me || state.me.role !== "BOT_OWNER") return;
+    const enabled = document.getElementById("configMaintenanceEnabled");
+    const message = document.getElementById("configMaintenanceMessage");
+    const allowStaff = document.getElementById("configMaintenanceAllowStaff");
+    const saveButton = document.getElementById("btnSaveBotMaintenance");
+    const status = document.getElementById("botMaintenanceStatus");
+    if (saveButton) saveButton.disabled = true;
+    if (status) status.textContent = t("config_loading");
+    try {
+      await apiPatch(
+        "/guilds/" + encodeURIComponent(state.guildId) + "/maintenance",
+        {
           maintenanceMode: {
-            enabled: !!(enabled && enabled.value === 'true'),
+            enabled: !!(enabled && enabled.value === "true"),
             message: message && message.value ? message.value.trim() : null,
-            allowStaff: !allowStaff || allowStaff.value !== 'false'
-          }
-        });
-        if (status) status.textContent = t('config_saved');
-      } catch (error) {
-        if (status) status.textContent = t('config_error_save');
-      } finally {
-        if (saveButton) saveButton.disabled = false;
+            allowStaff: !allowStaff || allowStaff.value !== "false",
+          },
+        },
+      );
+      if (status) status.textContent = t("config_saved");
+    } catch {
+      if (status) status.textContent = t("config_error_save");
+    } finally {
+      if (saveButton) saveButton.disabled = false;
+    }
+  }
+
+  function getGuildMetaList(kind) {
+    const m = state._guildMeta || {};
+    return kind && m[kind] ? m[kind] : [];
+  }
+
+  function getVoiceChannelNameById(id) {
+    if (!id) return null;
+    const list = getGuildMetaList("voiceChannels");
+    const found = list.find(function (c) {
+      return c && c.id === id;
+    });
+    return found ? found.name : null;
+  }
+
+  async function ensureGuildMetaForTempVoice() {
+    if (!state.guildId) return;
+    state._guildMeta = state._guildMeta || {};
+    var hasVoice =
+      Array.isArray(state._guildMeta.voiceChannels) &&
+      state._guildMeta.voiceChannels.length;
+    var hasCats =
+      Array.isArray(state._guildMeta.categories) &&
+      state._guildMeta.categories.length;
+    if (hasVoice && hasCats) return;
+    try {
+      const meta = await apiGet(
+        "/guilds/" + encodeURIComponent(state.guildId) + "/meta",
+      );
+      if (meta) {
+        state._guildMeta.voiceChannels = Array.isArray(meta.voiceChannels)
+          ? meta.voiceChannels
+          : [];
+        state._guildMeta.categories = Array.isArray(meta.categories)
+          ? meta.categories
+          : [];
+      }
+    } catch {}
+  }
+
+  function populateTempVoiceSelects() {
+    const addBaseSel =
+      document.getElementById("tempVoiceAddBaseSelect") ||
+      document.getElementById("tempVoiceBaseId");
+    const catSel = document.getElementById("tempVoiceCategoryId");
+
+    if (addBaseSel) {
+      const current = addBaseSel.value || "";
+      addBaseSel.innerHTML = "";
+      const optNone = document.createElement("option");
+      optNone.value = "";
+      optNone.textContent = t("common_select_placeholder") || "-";
+      addBaseSel.appendChild(optNone);
+
+      getGuildMetaList("voiceChannels").forEach(function (ch) {
+        const opt = document.createElement("option");
+        opt.value = ch.id;
+        opt.textContent = ch.name;
+        addBaseSel.appendChild(opt);
+      });
+      addBaseSel.value = current;
+    }
+
+    if (catSel) {
+      const current = catSel.value || "";
+      catSel.innerHTML = "";
+      const optNone = document.createElement("option");
+      optNone.value = "";
+      optNone.textContent = t("common_none_option");
+      catSel.appendChild(optNone);
+
+      getGuildMetaList("categories").forEach(function (c) {
+        const opt = document.createElement("option");
+        opt.value = c.id;
+        opt.textContent = c.name;
+        catSel.appendChild(opt);
+      });
+      catSel.value = current;
+    }
+  }
+
+  // TempVoice dirty tracking (same idea as GameNews dirty hint)
+  function _tvNormalizeBaseIds(arr) {
+    return (Array.isArray(arr) ? arr : [])
+      .filter(function (x) {
+        return !!x;
+      })
+      .map(function (x) {
+        return String(x);
+      });
+  }
+
+  function getTempVoiceSnapshotFromUI() {
+    var enabledSel = document.getElementById("tempVoiceEnabled");
+    var catInput = document.getElementById("tempVoiceCategoryId");
+    var delayInput = document.getElementById("tempVoiceDeleteDelay");
+    var maxUsersInput = document.getElementById("tempVoiceMaxUsers");
+
+    var enabled = enabledSel && enabledSel.value === "true";
+    var categoryId = (catInput && String(catInput.value || "").trim()) || "";
+    var delaySeconds = parseInt((delayInput && delayInput.value) || "10", 10);
+    if (!Number.isFinite(delaySeconds) || delaySeconds < 2) delaySeconds = 10;
+
+    var maxUsers = null;
+    try {
+      var raw =
+        maxUsersInput && maxUsersInput.value
+          ? String(maxUsersInput.value).trim()
+          : "";
+      if (raw) {
+        var n = parseInt(raw, 10);
+        if (Number.isFinite(n) && n >= 1 && n <= 99) maxUsers = n;
+      }
+    } catch {}
+
+    var baseChannelIds = _tvNormalizeBaseIds(
+      state.tempVoiceBase && state.tempVoiceBase.items,
+    );
+
+    return {
+      enabled: !!enabled,
+      categoryId: categoryId,
+      deleteDelaySeconds: delaySeconds,
+      maxUsersPerRoom: maxUsers,
+      baseChannelIds: baseChannelIds,
+    };
+  }
+
+  function _tvSnapshotsEqual(a, b) {
+    if (!a || !b) return false;
+    if (!!a.enabled !== !!b.enabled) return false;
+    if (String(a.categoryId || "") !== String(b.categoryId || "")) return false;
+    if (Number(a.deleteDelaySeconds) !== Number(b.deleteDelaySeconds))
+      return false;
+    var am =
+      a.maxUsersPerRoom === null || a.maxUsersPerRoom === undefined
+        ? null
+        : Number(a.maxUsersPerRoom);
+    var bm =
+      b.maxUsersPerRoom === null || b.maxUsersPerRoom === undefined
+        ? null
+        : Number(b.maxUsersPerRoom);
+    if (am !== bm) return false;
+
+    var aa = _tvNormalizeBaseIds(a.baseChannelIds);
+    var bb = _tvNormalizeBaseIds(b.baseChannelIds);
+    if (aa.length !== bb.length) return false;
+    for (var i = 0; i < aa.length; i++) {
+      if (aa[i] !== bb[i]) return false;
+    }
+    return true;
+  }
+
+  function setTempVoiceDirty(isDirty) {
+    state.tempVoiceDirty = !!isDirty;
+    var btn = document.getElementById("btnSaveTempVoice");
+    var hint = document.getElementById("tvDirtyHint");
+    var panel = document.getElementById("tempVoiceDetailPanel");
+
+    // Permission gate: allow save only if user can manage extras
+    var perms = state.perms || {};
+    var canEdit =
+      !!(
+        state.me &&
+        (state.me.role === "BOT_ADMIN" || state.me.role === "BOT_OWNER")
+      ) ||
+      !!perms.canEditConfig ||
+      !!perms.canManageGameNews;
+
+    if (panel) {
+      panel.classList.toggle("dirty", !!state.tempVoiceDirty && canEdit);
+    }
+
+    if (btn) {
+      btn.disabled = !canEdit || !state.tempVoiceDirty;
+      btn.classList.toggle("primary", !!state.tempVoiceDirty && canEdit);
+    }
+    if (hint) {
+      if (state.tempVoiceDirty && canEdit) {
+        hint.classList.remove("hidden");
+        hint.textContent =
+          t("tempvoice_unsaved_hint") || "Alteracoes por guardar.";
+      } else {
+        hint.classList.add("hidden");
+        hint.textContent = "";
       }
     }
+  }
 
-    function getGuildMetaList(kind) {
-      const m = state._guildMeta || {};
-      return (kind && m[kind]) ? m[kind] : [];
+  function updateTempVoiceDirtyFromUI() {
+    var snap = getTempVoiceSnapshotFromUI();
+    var orig = state.tempVoiceOriginal || null;
+    setTempVoiceDirty(!(orig && _tvSnapshotsEqual(orig, snap)));
+  }
+
+  function bindTempVoiceDirtyTrackingOnce() {
+    var marker =
+      document.body && document.body.dataset
+        ? document.body.dataset.tvDirtyBound
+        : null;
+    if (marker) return;
+    if (document.body && document.body.dataset)
+      document.body.dataset.tvDirtyBound = "1";
+
+    var enabledSel = document.getElementById("tempVoiceEnabled");
+    var headerEnabled = document.getElementById("tempVoiceHeaderEnabled");
+    var catInput = document.getElementById("tempVoiceCategoryId");
+    var delayInput = document.getElementById("tempVoiceDeleteDelay");
+    var maxUsersInput = document.getElementById("tempVoiceMaxUsers");
+
+    [enabledSel, catInput].forEach(function (el) {
+      if (!el) return;
+      el.addEventListener("change", function () {
+        if (el === enabledSel && headerEnabled)
+          headerEnabled.checked = enabledSel.value === "true";
+        updateTempVoiceDirtyFromUI();
+      });
+    });
+
+    if (headerEnabled) {
+      headerEnabled.addEventListener("change", function () {
+        if (enabledSel)
+          enabledSel.value = headerEnabled.checked ? "true" : "false";
+        updateTempVoiceDirtyFromUI();
+        saveTempVoiceConfig().catch(function () {});
+      });
     }
 
-    function getVoiceChannelNameById(id) {
-      if (!id) return null;
-      const list = getGuildMetaList('voiceChannels');
-      const found = list.find(function (c) { return c && c.id === id; });
-      return found ? found.name : null;
-    }
+    [delayInput, maxUsersInput].forEach(function (el) {
+      if (!el) return;
+      el.addEventListener("input", function () {
+        updateTempVoiceDirtyFromUI();
+      });
+    });
+  }
 
-    
-    async function ensureGuildMetaForTempVoice() {
-      if (!state.guildId) return;
-      state._guildMeta = state._guildMeta || {};
-      var hasVoice = Array.isArray(state._guildMeta.voiceChannels) && state._guildMeta.voiceChannels.length;
-      var hasCats = Array.isArray(state._guildMeta.categories) && state._guildMeta.categories.length;
-      if (hasVoice && hasCats) return;
-      try {
-        const meta = await apiGet('/guilds/' + encodeURIComponent(state.guildId) + '/meta');
-        if (meta) {
-          state._guildMeta.voiceChannels = Array.isArray(meta.voiceChannels) ? meta.voiceChannels : [];
-          state._guildMeta.categories = Array.isArray(meta.categories) ? meta.categories : [];
-        }
-      } catch (e) {}
-    }
+  async function loadTempVoiceConfig() {
+    if (!state.guildId) return;
 
-function populateTempVoiceSelects() {
-      const addBaseSel = document.getElementById('tempVoiceAddBaseSelect') || document.getElementById('tempVoiceBaseId');
-      const catSel = document.getElementById('tempVoiceCategoryId');
+    try {
+      const res = await apiGet(
+        `/temp-voice/config?guildId=${encodeURIComponent(state.guildId)}`,
+      );
+      if (!res || !res.ok) return;
 
-      if (addBaseSel) {
-        const current = addBaseSel.value || '';
-        addBaseSel.innerHTML = '';
-        const optNone = document.createElement('option');
-        optNone.value = '';
-        optNone.textContent = t('common_select_placeholder') || '-';
-        addBaseSel.appendChild(optNone);
+      var cfg = res.config || {};
+      var enabledSel = document.getElementById("tempVoiceEnabled");
+      var headerEnabled = document.getElementById("tempVoiceHeaderEnabled");
+      var baseIdInput =
+        document.getElementById("tempVoiceAddBaseSelect") ||
+        document.getElementById("tempVoiceBaseId");
+      var catInput = document.getElementById("tempVoiceCategoryId");
+      var delayInput = document.getElementById("tempVoiceDeleteDelay");
+      var maxUsersInput = document.getElementById("tempVoiceMaxUsers");
 
-        getGuildMetaList('voiceChannels').forEach(function (ch) {
-          const opt = document.createElement('option');
-          opt.value = ch.id;
-          opt.textContent = ch.name;
-          addBaseSel.appendChild(opt);
-        });
-        addBaseSel.value = current;
+      // Ensure guild meta is available (voice channels + categories)
+      await ensureGuildMetaForTempVoice();
+      populateTempVoiceSelects();
+
+      var baseIds = Array.isArray(cfg.baseChannelIds) ? cfg.baseChannelIds : [];
+
+      state.tempVoiceBase = state.tempVoiceBase || {
+        items: [],
+        selectedIndex: -1,
+      };
+      state.tempVoiceBase.items = baseIds.slice();
+      state.tempVoiceBase.selectedIndex = -1;
+
+      if (enabledSel) {
+        enabledSel.value = cfg.enabled ? "true" : "false";
+      }
+      if (headerEnabled) headerEnabled.checked = cfg.enabled === true;
+      if (baseIdInput) {
+        baseIdInput.value = "";
+      }
+      if (catInput) {
+        catInput.value = cfg.categoryId || "";
+      }
+      if (delayInput) {
+        delayInput.value =
+          typeof cfg.deleteDelaySeconds === "number"
+            ? String(cfg.deleteDelaySeconds)
+            : "10";
+      }
+      if (maxUsersInput) {
+        maxUsersInput.value =
+          cfg.maxUsersPerRoom !== null && cfg.maxUsersPerRoom !== undefined
+            ? String(cfg.maxUsersPerRoom)
+            : "";
       }
 
-      if (catSel) {
-        const current = catSel.value || '';
-        catSel.innerHTML = '';
-        const optNone = document.createElement('option');
-        optNone.value = '';
-        optNone.textContent = t('common_none_option');
-        catSel.appendChild(optNone);
-
-        getGuildMetaList('categories').forEach(function (c) {
-          const opt = document.createElement('option');
-          opt.value = c.id;
-          opt.textContent = c.name;
-          catSel.appendChild(opt);
-        });
-        catSel.value = current;
+      if (typeof renderTempVoiceBaseList === "function") {
+        renderTempVoiceBaseList();
       }
 
+      // Snapshot for dirty tracking
+      state.tempVoiceOriginal = getTempVoiceSnapshotFromUI();
+      bindTempVoiceDirtyTrackingOnce();
+      setTempVoiceDirty(false);
+    } catch (err) {
+      console.error("Failed to load temp voice config", err);
     }
+  }
 
-    // TempVoice dirty tracking (same idea as GameNews dirty hint)
-    function _tvNormalizeBaseIds(arr) {
-      return (Array.isArray(arr) ? arr : []).filter(function (x) { return !!x; }).map(function (x) { return String(x); });
+  async function saveTempVoiceConfig() {
+    if (!state.guildId) return;
+    try {
+      updateTempVoiceDirtyFromUI();
+    } catch {}
+    if (!state.tempVoiceDirty) {
+      toast(t("tempvoice_nothing_to_save") || "Nada para guardar.", {
+        type: "info",
+      });
+      return;
     }
+    var _btnSave = document.getElementById("btnSaveTempVoice");
+    if (_btnSave) _btnSave.disabled = true;
 
-    function getTempVoiceSnapshotFromUI() {
-      var enabledSel = document.getElementById('tempVoiceEnabled');
-      var catInput = document.getElementById('tempVoiceCategoryId');
-      var delayInput = document.getElementById('tempVoiceDeleteDelay');
-      var maxUsersInput = document.getElementById('tempVoiceMaxUsers');
+    var enabledSel = document.getElementById("tempVoiceEnabled");
+    var catInput = document.getElementById("tempVoiceCategoryId");
+    var delayInput = document.getElementById("tempVoiceDeleteDelay");
+    var maxUsersInput = document.getElementById("tempVoiceMaxUsers");
 
-      var enabled = enabledSel && enabledSel.value === 'true';
-      var categoryId = (catInput && String(catInput.value || '').trim()) || '';
-      var delaySeconds = parseInt((delayInput && delayInput.value) || '10', 10);
-      if (!Number.isFinite(delaySeconds) || delaySeconds < 2) delaySeconds = 10;
+    var enabled = enabledSel && enabledSel.value === "true";
+    var categoryId = (catInput && catInput.value) || "";
+    var delayRaw = (delayInput && delayInput.value) || "10";
 
-      var maxUsers = null;
-      try {
-        var raw = (maxUsersInput && maxUsersInput.value) ? String(maxUsersInput.value).trim() : '';
-        if (raw) {
-          var n = parseInt(raw, 10);
-          if (Number.isFinite(n) && n >= 1 && n <= 99) maxUsers = n;
-        }
-      } catch (e) {}
+    var baseChannelIds = (
+      (state.tempVoiceBase && state.tempVoiceBase.items) ||
+      []
+    ).filter(function (s) {
+      return !!s;
+    });
 
-      var baseChannelIds = _tvNormalizeBaseIds(state.tempVoiceBase && state.tempVoiceBase.items);
+    var delaySeconds = parseInt(delayRaw, 10);
+    if (!Number.isFinite(delaySeconds) || delaySeconds < 2) delaySeconds = 10;
 
-      return {
-        enabled: !!enabled,
+    var maxUsers = null;
+    try {
+      var raw =
+        maxUsersInput && maxUsersInput.value
+          ? String(maxUsersInput.value).trim()
+          : "";
+      if (raw) {
+        var n = parseInt(raw, 10);
+        if (Number.isFinite(n) && n >= 1 && n <= 99) maxUsers = n;
+      }
+    } catch {}
+
+    try {
+      const body = {
+        guildId: state.guildId,
+        enabled: enabled,
+        baseChannelIds: baseChannelIds,
         categoryId: categoryId,
         deleteDelaySeconds: delaySeconds,
         maxUsersPerRoom: maxUsers,
-        baseChannelIds: baseChannelIds
       };
-    }
-
-    function _tvSnapshotsEqual(a, b) {
-      if (!a || !b) return false;
-      if (!!a.enabled !== !!b.enabled) return false;
-      if (String(a.categoryId || '') !== String(b.categoryId || '')) return false;
-      if (Number(a.deleteDelaySeconds) !== Number(b.deleteDelaySeconds)) return false;
-      var am = (a.maxUsersPerRoom === null || a.maxUsersPerRoom === undefined) ? null : Number(a.maxUsersPerRoom);
-      var bm = (b.maxUsersPerRoom === null || b.maxUsersPerRoom === undefined) ? null : Number(b.maxUsersPerRoom);
-      if (am !== bm) return false;
-
-      var aa = _tvNormalizeBaseIds(a.baseChannelIds);
-      var bb = _tvNormalizeBaseIds(b.baseChannelIds);
-      if (aa.length !== bb.length) return false;
-      for (var i = 0; i < aa.length; i++) {
-        if (aa[i] !== bb[i]) return false;
-      }
-      return true;
-    }
-
-    function setTempVoiceDirty(isDirty) {
-      state.tempVoiceDirty = !!isDirty;
-      var btn = document.getElementById('btnSaveTempVoice');
-      var hint = document.getElementById('tvDirtyHint');
-      var panel = document.getElementById('tempVoiceDetailPanel');
-
-      // Permission gate: allow save only if user can manage extras
-      var perms = state.perms || {};
-      var canEdit = !!(state.me && (state.me.role === 'BOT_ADMIN' || state.me.role === 'BOT_OWNER')) || !!perms.canEditConfig || !!perms.canManageGameNews;
-
-      if (panel) {
-        panel.classList.toggle('dirty', !!state.tempVoiceDirty && canEdit);
-      }
-
-      if (btn) {
-        btn.disabled = !canEdit || !state.tempVoiceDirty;
-        btn.classList.toggle('primary', !!state.tempVoiceDirty && canEdit);
-      }
-      if (hint) {
-        if (state.tempVoiceDirty && canEdit) {
-          hint.classList.remove('hidden');
-          hint.textContent = t('tempvoice_unsaved_hint') || 'Alteracoes por guardar.';
-        } else {
-          hint.classList.add('hidden');
-          hint.textContent = '';
-        }
-      }
-    }
-
-    function updateTempVoiceDirtyFromUI() {
-      var snap = getTempVoiceSnapshotFromUI();
-      var orig = state.tempVoiceOriginal || null;
-      setTempVoiceDirty(!(orig && _tvSnapshotsEqual(orig, snap)));
-    }
-
-    function bindTempVoiceDirtyTrackingOnce() {
-      var marker = document.body && document.body.dataset ? document.body.dataset.tvDirtyBound : null;
-      if (marker) return;
-      if (document.body && document.body.dataset) document.body.dataset.tvDirtyBound = '1';
-
-      var enabledSel = document.getElementById('tempVoiceEnabled');
-      var headerEnabled = document.getElementById('tempVoiceHeaderEnabled');
-      var catInput = document.getElementById('tempVoiceCategoryId');
-      var delayInput = document.getElementById('tempVoiceDeleteDelay');
-      var maxUsersInput = document.getElementById('tempVoiceMaxUsers');
-
-      [enabledSel, catInput].forEach(function (el) {
-        if (!el) return;
-        el.addEventListener('change', function () {
-          if (el === enabledSel && headerEnabled) headerEnabled.checked = enabledSel.value === 'true';
-          updateTempVoiceDirtyFromUI();
-        });
-      });
-
-      if (headerEnabled) {
-        headerEnabled.addEventListener('change', function () {
-          if (enabledSel) enabledSel.value = headerEnabled.checked ? 'true' : 'false';
-          updateTempVoiceDirtyFromUI();
-          saveTempVoiceConfig().catch(function () {});
-        });
-      }
-
-      [delayInput, maxUsersInput].forEach(function (el) {
-        if (!el) return;
-        el.addEventListener('input', function () {
-          updateTempVoiceDirtyFromUI();
-        });
-      });
-    }
-
-    async function loadTempVoiceConfig() {
-      if (!state.guildId) return;
-
-      try {
-        const res = await apiGet(`/temp-voice/config?guildId=${encodeURIComponent(state.guildId)}`);
-        if (!res || !res.ok) return;
-
-        var cfg = res.config || {};
-        var enabledSel = document.getElementById('tempVoiceEnabled');
-        var headerEnabled = document.getElementById('tempVoiceHeaderEnabled');
-        var baseIdInput = document.getElementById('tempVoiceAddBaseSelect') || document.getElementById('tempVoiceBaseId');
-        var catInput = document.getElementById('tempVoiceCategoryId');
-        var delayInput = document.getElementById('tempVoiceDeleteDelay');
-        var maxUsersInput = document.getElementById('tempVoiceMaxUsers');
-
-        // Ensure guild meta is available (voice channels + categories)
-        await ensureGuildMetaForTempVoice();
-        populateTempVoiceSelects();
-
-        var baseIds = Array.isArray(cfg.baseChannelIds) ? cfg.baseChannelIds : [];
-
-        state.tempVoiceBase = state.tempVoiceBase || { items: [], selectedIndex: -1 };
-        state.tempVoiceBase.items = baseIds.slice();
-        state.tempVoiceBase.selectedIndex = -1;
-
-        if (enabledSel) {
-          enabledSel.value = cfg.enabled ? 'true' : 'false';
-        }
-        if (headerEnabled) headerEnabled.checked = cfg.enabled === true;
-        if (baseIdInput) {
-          baseIdInput.value = '';
-        }
-        if (catInput) {
-          catInput.value = cfg.categoryId || '';
-        }
-        if (delayInput) {
-          delayInput.value = typeof cfg.deleteDelaySeconds === 'number' ? String(cfg.deleteDelaySeconds) : '10';
-        }
-        if (maxUsersInput) {
-          maxUsersInput.value = (cfg.maxUsersPerRoom !== null && cfg.maxUsersPerRoom !== undefined) ? String(cfg.maxUsersPerRoom) : '';
-        }
-
-        if (typeof renderTempVoiceBaseList === 'function') {
-          renderTempVoiceBaseList();
-        }
-
-        // Snapshot for dirty tracking
-        state.tempVoiceOriginal = getTempVoiceSnapshotFromUI();
-        bindTempVoiceDirtyTrackingOnce();
+      const res = await apiPost("/temp-voice/config", body);
+      if (res && res.ok) {
+        toast(t("tempvoice_saved"), { type: "success" });
         setTempVoiceDirty(false);
-      } catch (err) {
-        console.error('Failed to load temp voice config', err);
+        loadTempVoiceConfig().catch(function () {});
+      } else {
+        toast(t("tempvoice_save_error"), { type: "error" });
       }
+    } catch (err) {
+      console.error("Failed to save temp voice config", err);
+      toast(t("tempvoice_save_error"), { type: "error" });
+    } finally {
+      try {
+        updateTempVoiceDirtyFromUI();
+      } catch {}
     }
+  }
 
-    async function saveTempVoiceConfig() {
-      if (!state.guildId) return;
-      try { updateTempVoiceDirtyFromUI(); } catch (e) {}
-      if (!state.tempVoiceDirty) {
-        toast(t('tempvoice_nothing_to_save') || 'Nada para guardar.', { type: 'info' });
+  async function loadTempVoiceActive() {
+    if (!state.guildId) return;
+
+    try {
+      const res = await apiGet(
+        `/temp-voice/active?guildId=${encodeURIComponent(state.guildId)}`,
+      );
+      const listEl = document.getElementById("tempVoiceActiveList");
+      if (!listEl) return;
+
+      listEl.innerHTML = "";
+
+      if (!res || !res.ok || !Array.isArray(res.items) || !res.items.length) {
+        listEl.innerHTML = `<div class="empty">${escapeHtml(t("tempvoice_active_empty"))}</div>`;
         return;
       }
-      var _btnSave = document.getElementById('btnSaveTempVoice');
-      if (_btnSave) _btnSave.disabled = true;
 
-      var enabledSel = document.getElementById('tempVoiceEnabled');
-      var catInput = document.getElementById('tempVoiceCategoryId');
-      var delayInput = document.getElementById('tempVoiceDeleteDelay');
-      var maxUsersInput = document.getElementById('tempVoiceMaxUsers');
-
-var enabled = enabledSel && enabledSel.value === 'true';
-      var categoryId = (catInput && catInput.value) || '';
-      var delayRaw = (delayInput && delayInput.value) || '10';
-
-      var baseChannelIds = (state.tempVoiceBase && state.tempVoiceBase.items || []).filter(function (s) { return !!s; });
-
-      var delaySeconds = parseInt(delayRaw, 10);
-      if (!Number.isFinite(delaySeconds) || delaySeconds < 2) delaySeconds = 10;
-
-      var maxUsers = null;
-      try {
-        var raw = (maxUsersInput && maxUsersInput.value) ? String(maxUsersInput.value).trim() : '';
-        if (raw) {
-          var n = parseInt(raw, 10);
-          if (Number.isFinite(n) && n >= 1 && n <= 99) maxUsers = n;
-        }
-      } catch (e) {}
-
-
-
-      try {
-        const body = {
-          guildId: state.guildId,
-          enabled: enabled,
-          baseChannelIds: baseChannelIds,
-          categoryId: categoryId,
-          deleteDelaySeconds: delaySeconds,
-          maxUsersPerRoom: maxUsers
-        };
-        const res = await apiPost('/temp-voice/config', body);
-        if (res && res.ok) {
-          toast(t('tempvoice_saved'), { type: 'success' });
-          setTempVoiceDirty(false);
-          loadTempVoiceConfig().catch(function () {});
-        } else {
-          toast(t('tempvoice_save_error'), { type: 'error' });
-        }
-      } catch (err) {
-        console.error('Failed to save temp voice config', err);
-        toast(t('tempvoice_save_error'), { type: 'error' });
-      } finally {
-        try { updateTempVoiceDirtyFromUI(); } catch (e) {}
-      }
-    }
-
-    async function loadTempVoiceActive() {
-      if (!state.guildId) return;
-
-      try {
-        const res = await apiGet(`/temp-voice/active?guildId=${encodeURIComponent(state.guildId)}`);
-        const listEl = document.getElementById('tempVoiceActiveList');
-        if (!listEl) return;
-
-        listEl.innerHTML = '';
-
-        if (!res || !res.ok || !Array.isArray(res.items) || !res.items.length) {
-          listEl.innerHTML = `<div class="empty">${escapeHtml(t('tempvoice_active_empty'))}</div>`;
-          return;
-        }
-
-        res.items.forEach(function (item) {
-          var el = document.createElement('div');
-          el.className = 'list-item';
-          el.innerHTML = `
+      res.items.forEach(function (item) {
+        var el = document.createElement("div");
+        el.className = "list-item";
+        el.innerHTML = `
             <div class="row space">
               <div>
-                <div class="title">${escapeHtml(item.channelName || getVoiceChannelNameById(item.channelId) || (item.channelId ? ('#' + item.channelId) : ''))}</div>
+                <div class="title">${escapeHtml(item.channelName || getVoiceChannelNameById(item.channelId) || (item.channelId ? "#" + item.channelId : ""))}</div>
                 <div class="subtitle">
-                  ${escapeHtml(t('tempvoice_active_owner_label') || 'Owner')}: ${escapeHtml(item.ownerTag || item.ownerId || '?')}
-                  · ${escapeHtml(t('tempvoice_active_base_label') || 'Base')}: ${escapeHtml(item.baseChannelName || getVoiceChannelNameById(item.baseChannelId) || item.baseChannelId || '?')}
+                  ${escapeHtml(t("tempvoice_active_owner_label") || "Owner")}: ${escapeHtml(item.ownerTag || item.ownerId || "?")}
+                  · ${escapeHtml(t("tempvoice_active_base_label") || "Base")}: ${escapeHtml(item.baseChannelName || getVoiceChannelNameById(item.baseChannelId) || item.baseChannelId || "?")}
                 </div>
               </div>
             </div>
-          `;          listEl.appendChild(el);
-        });
-      } catch (err) {
-        console.error('Failed to load temp voice active list', err);
-      }
+          `;
+        listEl.appendChild(el);
+      });
+    } catch (err) {
+      console.error("Failed to load temp voice active list", err);
     }
-
-
+  }
 
   function renderTempVoiceBaseList() {
-    var listEl = document.getElementById('tempVoiceBaseList');
+    var listEl = document.getElementById("tempVoiceBaseList");
     if (!listEl) return;
 
-    listEl.innerHTML = '';
+    listEl.innerHTML = "";
 
     var items = state.tempVoiceBase.items || [];
     if (!items.length) {
-      listEl.innerHTML = '<div class="empty">' + escapeHtml(t('tempvoice_base_list_empty')) + '</div>';
+      listEl.innerHTML =
+        '<div class="empty">' +
+        escapeHtml(t("tempvoice_base_list_empty")) +
+        "</div>";
       return;
     }
 
     items.forEach(function (id, index) {
-      var row = document.createElement('div');
-      row.className = 'list-item' + (index === state.tempVoiceBase.selectedIndex ? ' active' : '');
+      var row = document.createElement("div");
+      row.className =
+        "list-item" +
+        (index === state.tempVoiceBase.selectedIndex ? " active" : "");
       row.dataset.index = String(index);
       row.innerHTML = `
         <div class="row space">
           <div>
             <div class="title">${escapeHtml(getVoiceChannelNameById(id) || id || "")}</div>
-            <div class="subtitle">${escapeHtml(t('tempvoice_base_list_hint'))}</div>
+            <div class="subtitle">${escapeHtml(t("tempvoice_base_list_hint"))}</div>
           </div>
         </div>
       `;
-      row.addEventListener('click', function () {
+      row.addEventListener("click", function () {
         // mostrar estado de loading ao estilo dos feeds
-        if (typeof showPanelLoading === 'function') {
-          showPanelLoading('tempVoiceDetailPanel');
+        if (typeof showPanelLoading === "function") {
+          showPanelLoading("tempVoiceDetailPanel");
         }
         selectTempVoiceBaseIndex(index);
       });
@@ -2593,39 +3092,58 @@ var enabled = enabledSel && enabledSel.value === 'true';
     });
   }
 
-    function selectTempVoiceBaseIndex(index) {
-      var items = state.tempVoiceBase.items || [];
-      var emptyEl = document.getElementById('tempVoiceDetailEmpty');
-      var contentEl = document.getElementById('tempVoiceDetailContent');
-      var currentLabel = document.getElementById('tempVoiceCurrentBaseLabel');
+  function selectTempVoiceBaseIndex(index) {
+    var items = state.tempVoiceBase.items || [];
+    var emptyEl = document.getElementById("tempVoiceDetailEmpty");
+    var contentEl = document.getElementById("tempVoiceDetailContent");
+    var currentLabel = document.getElementById("tempVoiceCurrentBaseLabel");
 
-      if (index < 0 || index >= items.length) {
-        state.tempVoiceBase.selectedIndex = -1;
-        var baseIdInput = document.getElementById('tempVoiceAddBaseSelect') || document.getElementById('tempVoiceBaseId');
-        if (baseIdInput) baseIdInput.value = '';
-        if (emptyEl) emptyEl.classList.remove('hidden');
-        if (contentEl) contentEl.classList.add('hidden');
-        if (currentLabel) currentLabel.textContent = t('tempvoice_current_base') + ' (nenhum selecionado)';
-        renderTempVoiceBaseList();
-        return;
-      }
-
-      state.tempVoiceBase.selectedIndex = index;
-      var baseIdInput2 = document.getElementById('tempVoiceAddBaseSelect') || document.getElementById('tempVoiceBaseId');
-      if (baseIdInput2) baseIdInput2.value = '';
-      if (emptyEl) emptyEl.classList.add('hidden');
-      if (contentEl) contentEl.classList.remove('hidden');
-      if (currentLabel) currentLabel.textContent = (t('tempvoice_current_base') || 'Canal base:') + ' ' + (getVoiceChannelNameById(items[index]) || items[index] || '');
+    if (index < 0 || index >= items.length) {
+      state.tempVoiceBase.selectedIndex = -1;
+      var baseIdInput =
+        document.getElementById("tempVoiceAddBaseSelect") ||
+        document.getElementById("tempVoiceBaseId");
+      if (baseIdInput) baseIdInput.value = "";
+      if (emptyEl) emptyEl.classList.remove("hidden");
+      if (contentEl) contentEl.classList.add("hidden");
+      if (currentLabel)
+        currentLabel.textContent =
+          t("tempvoice_current_base") + " (nenhum selecionado)";
       renderTempVoiceBaseList();
+      return;
     }
-function addTempVoiceBaseChannel() {
-    if (!state.tempVoiceBase) state.tempVoiceBase = { items: [], selectedIndex: -1 };
-    if (!Array.isArray(state.tempVoiceBase.items)) state.tempVoiceBase.items = [];
 
-    var baseSel = document.getElementById('tempVoiceAddBaseSelect') || document.getElementById('tempVoiceBaseId');
-    var val = baseSel ? String(baseSel.value || '').trim() : '';
+    state.tempVoiceBase.selectedIndex = index;
+    var baseIdInput2 =
+      document.getElementById("tempVoiceAddBaseSelect") ||
+      document.getElementById("tempVoiceBaseId");
+    if (baseIdInput2) baseIdInput2.value = "";
+    if (emptyEl) emptyEl.classList.add("hidden");
+    if (contentEl) contentEl.classList.remove("hidden");
+    if (currentLabel)
+      currentLabel.textContent =
+        (t("tempvoice_current_base") || "Canal base:") +
+        " " +
+        (getVoiceChannelNameById(items[index]) || items[index] || "");
+    renderTempVoiceBaseList();
+  }
+  function addTempVoiceBaseChannel() {
+    if (!state.tempVoiceBase)
+      state.tempVoiceBase = { items: [], selectedIndex: -1 };
+    if (!Array.isArray(state.tempVoiceBase.items))
+      state.tempVoiceBase.items = [];
+
+    var baseSel =
+      document.getElementById("tempVoiceAddBaseSelect") ||
+      document.getElementById("tempVoiceBaseId");
+    var val = baseSel ? String(baseSel.value || "").trim() : "";
     if (!val) {
-      toast(t('tempvoice_select_base_first') || t('common_select_placeholder') || 'Selecione um canal base primeiro.', { type: 'warn' });
+      toast(
+        t("tempvoice_select_base_first") ||
+          t("common_select_placeholder") ||
+          "Selecione um canal base primeiro.",
+        { type: "warn" },
+      );
       return;
     }
 
@@ -2636,44 +3154,50 @@ function addTempVoiceBaseChannel() {
     state.tempVoiceBase.selectedIndex = state.tempVoiceBase.items.indexOf(val);
 
     // Reset select for convenience
-    if (baseSel) baseSel.value = '';
+    if (baseSel) baseSel.value = "";
 
     renderTempVoiceBaseList();
     selectTempVoiceBaseIndex(state.tempVoiceBase.selectedIndex);
-    try { bindTempVoiceDirtyTrackingOnce(); } catch (e) {}
+    try {
+      bindTempVoiceDirtyTrackingOnce();
+    } catch {}
     updateTempVoiceDirtyFromUI();
   }
-function deleteTempVoiceBaseAt(index) {
-    if (!state.tempVoiceBase || !Array.isArray(state.tempVoiceBase.items)) return;
+  function deleteTempVoiceBaseAt(index) {
+    if (!state.tempVoiceBase || !Array.isArray(state.tempVoiceBase.items))
+      return;
     if (index < 0 || index >= state.tempVoiceBase.items.length) return;
 
     state.tempVoiceBase.items.splice(index, 1);
     if (state.tempVoiceBase.items.length === 0) {
       state.tempVoiceBase.selectedIndex = -1;
-      var baseIdInput = document.getElementById('tempVoiceAddBaseSelect') || document.getElementById('tempVoiceBaseId');
-      if (baseIdInput) baseIdInput.value = '';
-    } else if (state.tempVoiceBase.selectedIndex >= state.tempVoiceBase.items.length) {
+      var baseIdInput =
+        document.getElementById("tempVoiceAddBaseSelect") ||
+        document.getElementById("tempVoiceBaseId");
+      if (baseIdInput) baseIdInput.value = "";
+    } else if (
+      state.tempVoiceBase.selectedIndex >= state.tempVoiceBase.items.length
+    ) {
       state.tempVoiceBase.selectedIndex = state.tempVoiceBase.items.length - 1;
-      var baseIdInput2 = document.getElementById('tempVoiceAddBaseSelect') || document.getElementById('tempVoiceBaseId');
-      if (baseIdInput2) baseIdInput2.value = state.tempVoiceBase.items[state.tempVoiceBase.selectedIndex] || '';
+      var baseIdInput2 =
+        document.getElementById("tempVoiceAddBaseSelect") ||
+        document.getElementById("tempVoiceBaseId");
+      if (baseIdInput2)
+        baseIdInput2.value =
+          state.tempVoiceBase.items[state.tempVoiceBase.selectedIndex] || "";
     }
     renderTempVoiceBaseList();
-    try { bindTempVoiceDirtyTrackingOnce(); } catch (e) {}
+    try {
+      bindTempVoiceDirtyTrackingOnce();
+    } catch {}
     updateTempVoiceDirtyFromUI();
   }
-
-
-
-
-
-
 
   // -----------------------------
   // Init
   // -----------------------------
 
-  document.addEventListener('DOMContentLoaded', function () {
-      
+  document.addEventListener("DOMContentLoaded", function () {
     // Preferências de interface (tema / densidade)
     initPreferences();
 
@@ -2685,106 +3209,126 @@ function deleteTempVoiceBaseAt(index) {
     updateSessionBadge();
     setInterval(updateSessionBadge, 30000);
 
-      // i18n inicial: segue o idioma do browser suportado (EN/PT).
-      var languageReady = Promise.resolve();
-      window.OzarkDashboard = window.OzarkDashboard || {};
-      window.OzarkDashboard.I18n = window.OzarkDashboard.I18n || {};
-      if (typeof window.OzarkDashboard.I18n.init === 'function') {
-        languageReady = window.OzarkDashboard.I18n.init(state.lang)
-          .catch(function (err) {
-            console.error('Failed to load dashboard language', state.lang, err);
-            state.lang = 'pt';
-            return window.OzarkDashboard.I18n.init('pt').catch(function (fallbackError) {
-              console.error('Failed to load fallback dashboard language', fallbackError);
-            });
-          })
-          .finally(function () {
-            applyI18n();
-          });
-      } else {
-        applyI18n();
-      }
-
-
+    // i18n inicial: segue o idioma do browser suportado (EN/PT).
+    var languageReady = Promise.resolve();
+    window.OzarkDashboard = window.OzarkDashboard || {};
+    window.OzarkDashboard.I18n = window.OzarkDashboard.I18n || {};
+    if (typeof window.OzarkDashboard.I18n.init === "function") {
+      languageReady = window.OzarkDashboard.I18n.init(state.lang)
+        .catch(function (err) {
+          console.error("Failed to load dashboard language", state.lang, err);
+          state.lang = "pt";
+          return window.OzarkDashboard.I18n.init("pt").catch(
+            function (fallbackError) {
+              console.error(
+                "Failed to load fallback dashboard language",
+                fallbackError,
+              );
+            },
+          );
+        })
+        .finally(function () {
+          applyI18n();
+        });
+    } else {
+      applyI18n();
+    }
 
     // Navegação por teclado (setas/Home/End) + roving tabindex para um tablist.
     function wireTablist(selector) {
-      var tabs = Array.prototype.slice.call(document.querySelectorAll(selector) || []);
+      var tabs = Array.prototype.slice.call(
+        document.querySelectorAll(selector) || [],
+      );
       if (!tabs.length) return;
 
       function moveFocus(target) {
         if (!target) return;
         tabs.forEach(function (b) {
-          b.setAttribute('tabindex', b === target ? '0' : '-1');
+          b.setAttribute("tabindex", b === target ? "0" : "-1");
         });
         target.focus();
       }
 
       tabs.forEach(function (btn) {
-        btn.addEventListener('keydown', function (ev) {
+        btn.addEventListener("keydown", function (ev) {
           var key = ev.key || ev.code;
           // Ignorar tabs desativadas (ex.: sem servidor selecionado).
-          var enabled = tabs.filter(function (b) { return !b.disabled; });
+          var enabled = tabs.filter(function (b) {
+            return !b.disabled;
+          });
           if (!enabled.length) return;
           var current = Math.max(0, enabled.indexOf(btn));
 
-          if (key === 'ArrowRight' || key === 'Right') {
+          if (key === "ArrowRight" || key === "Right") {
             ev.preventDefault();
             moveFocus(enabled[(current + 1) % enabled.length]);
-          } else if (key === 'ArrowLeft' || key === 'Left') {
+          } else if (key === "ArrowLeft" || key === "Left") {
             ev.preventDefault();
             moveFocus(enabled[(current - 1 + enabled.length) % enabled.length]);
-          } else if (key === 'Home') {
+          } else if (key === "Home") {
             ev.preventDefault();
             moveFocus(enabled[0]);
-          } else if (key === 'End') {
+          } else if (key === "End") {
             ev.preventDefault();
             moveFocus(enabled[enabled.length - 1]);
-          } else if (key === 'Enter' || key === ' ') {
+          } else if (key === "Enter" || key === " ") {
             // activate
             ev.preventDefault();
-            try { btn.click(); } catch (e) {}
+            try {
+              btn.click();
+            } catch {}
           }
         });
       });
     }
 
     function setupTabsKeyboardNavigation() {
-      wireTablist('.tabs button[data-tab]');
+      wireTablist(".tabs button[data-tab]");
     }
 
     function setupConfigSectionNavigation() {
-      var nav = document.querySelector('#tab-config .config-nav');
-      if (!nav || typeof window.IntersectionObserver !== 'function') return;
+      var nav = document.querySelector("#tab-config .config-nav");
+      if (!nav || typeof window.IntersectionObserver !== "function") return;
 
-      var links = Array.prototype.slice.call(nav.querySelectorAll('a[href^="#"]'));
-      var sections = links.map(function (link) {
-        return document.querySelector(link.getAttribute('href'));
-      }).filter(Boolean);
+      var links = Array.prototype.slice.call(
+        nav.querySelectorAll('a[href^="#"]'),
+      );
+      var sections = links
+        .map(function (link) {
+          return document.querySelector(link.getAttribute("href"));
+        })
+        .filter(Boolean);
       if (!sections.length) return;
 
-      var observer = new IntersectionObserver(function (entries) {
-        var visible = entries.filter(function (entry) { return entry.isIntersecting; });
-        if (!visible.length) return;
-        visible.sort(function (left, right) {
-          return left.boundingClientRect.top - right.boundingClientRect.top;
-        });
-        var activeId = visible[0].target.id;
-        links.forEach(function (link) {
-          var active = link.getAttribute('href') === '#' + activeId;
-          link.classList.toggle('is-active', active);
-          if (active) link.setAttribute('aria-current', 'location');
-          else link.removeAttribute('aria-current');
-        });
-      }, { rootMargin: '-96px 0px -65% 0px', threshold: 0 });
+      var observer = new IntersectionObserver(
+        function (entries) {
+          var visible = entries.filter(function (entry) {
+            return entry.isIntersecting;
+          });
+          if (!visible.length) return;
+          visible.sort(function (left, right) {
+            return left.boundingClientRect.top - right.boundingClientRect.top;
+          });
+          var activeId = visible[0].target.id;
+          links.forEach(function (link) {
+            var active = link.getAttribute("href") === "#" + activeId;
+            link.classList.toggle("is-active", active);
+            if (active) link.setAttribute("aria-current", "location");
+            else link.removeAttribute("aria-current");
+          });
+        },
+        { rootMargin: "-96px 0px -65% 0px", threshold: 0 },
+      );
 
-      sections.forEach(function (section) { observer.observe(section); });
+      sections.forEach(function (section) {
+        observer.observe(section);
+      });
     }
 
     // Tabs
-    document.querySelectorAll('.tabs button[data-tab]').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        var tab = btn.getAttribute('data-tab');
+    document.querySelectorAll(".tabs button[data-tab]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var tab = btn.getAttribute("data-tab");
         if (!tab) return;
         setTab(tab);
       });
@@ -2794,212 +3338,251 @@ function deleteTempVoiceBaseAt(index) {
     setupConfigSectionNavigation();
 
     // Atalhos do Overview: navegam para a aba correspondente.
-    var overviewShortcuts = document.getElementById('overviewShortcuts');
+    var overviewShortcuts = document.getElementById("overviewShortcuts");
     if (overviewShortcuts) {
-      overviewShortcuts.addEventListener('click', function (ev) {
-        var btn = (ev.target && ev.target.closest) ? ev.target.closest('[data-goto]') : null;
+      overviewShortcuts.addEventListener("click", function (ev) {
+        var btn =
+          ev.target && ev.target.closest
+            ? ev.target.closest("[data-goto]")
+            : null;
         if (!btn || btn.disabled) return;
-        var target = btn.getAttribute('data-goto');
+        var target = btn.getAttribute("data-goto");
         if (target) setTab(target);
       });
     }
 
     // Guild picker
-    var guildPicker = document.getElementById('guildPicker');
+    var guildPicker = document.getElementById("guildPicker");
     if (guildPicker) {
-      guildPicker.addEventListener('change', function () {
+      guildPicker.addEventListener("change", function () {
         (async function () {
-        var v = guildPicker.value || '';
-        state.guildId = v || null;
-        try { if (window.OzarkDashboard && typeof window.OzarkDashboard.restoreLogsPrefs === 'function') window.OzarkDashboard.restoreLogsPrefs(state.guildId); } catch (e) {}
-        try { refreshGlobalBanner(); } catch (e) {}
-        try {
-          if (state.guildId) setStoredGuildId(state.guildId);
-          else localStorage.removeItem(GUILD_KEY);
-        } catch (e) {}
-        // Mint scoped OAuth token (if needed) before enabling tabs.
-        var okScoped = await ensureGuildScopedToken(state.guildId);
-        if (!okScoped) {
-          state.guildId = null;
-          try { guildPicker.value = ''; } catch (e) {}
-          updateTabAccess();
-          setTab('overview');
-          return;
-        }
-
-        await loadGuildDashboardLanguage(state.guildId);
-        updateTabAccess();
-
-        // Se nenhum servidor estiver selecionado, volta sempre para a visão geral.
-        if (!state.guildId) {
-          setTab('overview');
-          return;
-        }
-
-        if (state.currentTab !== 'overview') {
-          // reload current tab data when guild changes
-          if (state.currentTab === 'logs') {
-            if (window.OzarkDashboard.loadModerationOverview) {
-              window.OzarkDashboard.loadModerationOverview().catch(function () {});
-            }
-            window.OzarkDashboard.loadLogs().catch(function () {});
-            if (window.OzarkDashboard.loadTickets) window.OzarkDashboard.loadTickets(true);
-          } else if (state.currentTab === 'features') {
-            if (window.OzarkDashboard.loadFeatures) window.OzarkDashboard.loadFeatures().catch(function () {});
-            if (window.OzarkDashboard.loadPremium) window.OzarkDashboard.loadPremium().catch(function () {});
-            loadGuildConfig().catch(function () {});
-          } else if (state.currentTab === 'user') {
-            window.OzarkDashboard.loadUsers().catch(function () {});
-          } else if (state.currentTab === 'config') {
-            loadGuildConfig().catch(function () {});
-            if (window.OzarkDashboard.reloadAudit) {
-              window.OzarkDashboard.reloadAudit().catch(function () {});
-            }
-          } else if (state.currentTab === 'premium-admin') {
-            loadBotMaintenance().catch(function () {});
+          var v = guildPicker.value || "";
+          state.guildId = v || null;
+          try {
+            if (
+              window.OzarkDashboard &&
+              typeof window.OzarkDashboard.restoreLogsPrefs === "function"
+            )
+              window.OzarkDashboard.restoreLogsPrefs(state.guildId);
+          } catch {}
+          try {
+            refreshGlobalBanner();
+          } catch {}
+          try {
+            if (state.guildId) setStoredGuildId(state.guildId);
+            else localStorage.removeItem(GUILD_KEY);
+          } catch {}
+          // Mint scoped OAuth token (if needed) before enabling tabs.
+          var okScoped = await ensureGuildScopedToken(state.guildId);
+          if (!okScoped) {
+            state.guildId = null;
+            try {
+              guildPicker.value = "";
+            } catch {}
+            updateTabAccess();
+            setTab("overview");
+            return;
           }
-        }
+
+          await loadGuildDashboardLanguage(state.guildId);
+          updateTabAccess();
+
+          // Se nenhum servidor estiver selecionado, volta sempre para a visão geral.
+          if (!state.guildId) {
+            setTab("overview");
+            return;
+          }
+
+          if (state.currentTab !== "overview") {
+            // reload current tab data when guild changes
+            if (state.currentTab === "logs") {
+              if (window.OzarkDashboard.loadModerationOverview) {
+                window.OzarkDashboard.loadModerationOverview().catch(
+                  function () {},
+                );
+              }
+              window.OzarkDashboard.loadLogs().catch(function () {});
+              if (window.OzarkDashboard.loadTickets)
+                window.OzarkDashboard.loadTickets(true);
+            } else if (state.currentTab === "features") {
+              if (window.OzarkDashboard.loadFeatures)
+                window.OzarkDashboard.loadFeatures().catch(function () {});
+              if (window.OzarkDashboard.loadPremium)
+                window.OzarkDashboard.loadPremium().catch(function () {});
+              loadGuildConfig().catch(function () {});
+            } else if (state.currentTab === "user") {
+              window.OzarkDashboard.loadUsers().catch(function () {});
+            } else if (state.currentTab === "config") {
+              loadGuildConfig().catch(function () {});
+              if (window.OzarkDashboard.reloadAudit) {
+                window.OzarkDashboard.reloadAudit().catch(function () {});
+              }
+            } else if (state.currentTab === "premium-admin") {
+              loadBotMaintenance().catch(function () {});
+            }
+          }
         })().catch(function () {
           // ignore
         });
       });
     }
 
-          // Temp voice config
-      var btnDeleteTempVoiceBase = document.getElementById('btnDeleteTempVoiceBase');
-      if (btnDeleteTempVoiceBase) {
-        btnDeleteTempVoiceBase.addEventListener('click', function () {
-          if (!state.tempVoiceBase) return;
-          var idx = state.tempVoiceBase.selectedIndex;
-          if (typeof window.confirm === 'function' && !window.confirm(t('tempvoice_delete_confirm'))) return;
-          if (typeof deleteTempVoiceBaseAt === 'function') {
-            deleteTempVoiceBaseAt(idx);
+    // Temp voice config
+    var btnDeleteTempVoiceBase = document.getElementById(
+      "btnDeleteTempVoiceBase",
+    );
+    if (btnDeleteTempVoiceBase) {
+      btnDeleteTempVoiceBase.addEventListener("click", function () {
+        if (!state.tempVoiceBase) return;
+        var idx = state.tempVoiceBase.selectedIndex;
+        if (
+          typeof window.confirm === "function" &&
+          !window.confirm(t("tempvoice_delete_confirm"))
+        )
+          return;
+        if (typeof deleteTempVoiceBaseAt === "function") {
+          deleteTempVoiceBaseAt(idx);
+        }
+      });
+    }
+
+    // Temp voice base channels
+    var btnTempVoiceAddBase = document.getElementById("btnTempVoiceAddBase");
+    if (btnTempVoiceAddBase) {
+      btnTempVoiceAddBase.addEventListener("click", function () {
+        addTempVoiceBaseChannel();
+      });
+    }
+    var baseIdInput =
+      document.getElementById("tempVoiceAddBaseSelect") ||
+      document.getElementById("tempVoiceBaseId");
+    if (baseIdInput) {
+      // Selecting a voice channel and clicking "Adicionar" adds it to the base list.
+      // Also allow quick-add on change (optional).
+      if (!baseIdInput.dataset.boundTempVoiceAdd) {
+        baseIdInput.dataset.boundTempVoiceAdd = "1";
+        baseIdInput.addEventListener("change", function () {
+          // Do not auto-add if user just cleared it
+          if (String(baseIdInput.value || "").trim()) {
+            // Keep it explicit: only auto-add if there are no bases yet
+            if (
+              !state.tempVoiceBase ||
+              !Array.isArray(state.tempVoiceBase.items) ||
+              state.tempVoiceBase.items.length === 0
+            ) {
+              addTempVoiceBaseChannel();
+            }
           }
         });
       }
+    }
 
+    var btnSaveTempVoice = document.getElementById("btnSaveTempVoice");
+    if (btnSaveTempVoice) {
+      btnSaveTempVoice.addEventListener("click", function () {
+        saveTempVoiceConfig().catch(function () {});
+      });
+    }
 
-      // Temp voice base channels
-      var btnTempVoiceAddBase = document.getElementById('btnTempVoiceAddBase');
-      if (btnTempVoiceAddBase) {
-        btnTempVoiceAddBase.addEventListener('click', function () {
-          addTempVoiceBaseChannel();
-        });
-      }
-      var baseIdInput = document.getElementById('tempVoiceAddBaseSelect') || document.getElementById('tempVoiceBaseId');
-      if (baseIdInput) {
-        // Selecting a voice channel and clicking "Adicionar" adds it to the base list.
-        // Also allow quick-add on change (optional).
-        if (!baseIdInput.dataset.boundTempVoiceAdd) {
-          baseIdInput.dataset.boundTempVoiceAdd = '1';
-          baseIdInput.addEventListener('change', function () {
-            // Do not auto-add if user just cleared it
-            if (String(baseIdInput.value || '').trim()) {
-              // Keep it explicit: only auto-add if there are no bases yet
-              if (!state.tempVoiceBase || !Array.isArray(state.tempVoiceBase.items) || state.tempVoiceBase.items.length === 0) {
-                addTempVoiceBaseChannel();
-              }
-            }
-          });
-        }
-      }
-
-
-      var btnSaveTempVoice = document.getElementById('btnSaveTempVoice');
-      if (btnSaveTempVoice) {
-        btnSaveTempVoice.addEventListener('click', function () {
-          saveTempVoiceConfig().catch(function () {});
-        });
-      }
-
-// Logs controls
-    var btnReloadLogs = document.getElementById('btnReloadLogs');
+    // Logs controls
+    var btnReloadLogs = document.getElementById("btnReloadLogs");
     if (btnReloadLogs) {
-      btnReloadLogs.addEventListener('click', function () {
+      btnReloadLogs.addEventListener("click", function () {
         window.OzarkDashboard.loadLogs().catch(function () {});
       });
     }
 
-    var logTypeSelect = document.getElementById('logType');
+    var logTypeSelect = document.getElementById("logType");
     if (logTypeSelect) {
-      logTypeSelect.addEventListener('change', function () {
+      logTypeSelect.addEventListener("change", function () {
         window.OzarkDashboard.loadLogs().catch(function () {});
       });
     }
 
-	    var logSearchInput = document.getElementById('logSearch');
-	    if (logSearchInput) {
-  var logSearchTimer = null;
+    var logSearchInput = document.getElementById("logSearch");
+    if (logSearchInput) {
+      var logSearchTimer = null;
 
-  function triggerLogsDebounced() {
-    if (logSearchTimer) clearTimeout(logSearchTimer);
-    logSearchTimer = setTimeout(function () {
-      window.OzarkDashboard.loadLogs().catch(function () {});
-    }, 300);
-  }
+      function triggerLogsDebounced() {
+        if (logSearchTimer) clearTimeout(logSearchTimer);
+        logSearchTimer = setTimeout(function () {
+          window.OzarkDashboard.loadLogs().catch(function () {});
+        }, 300);
+      }
 
-  logSearchInput.addEventListener('input', function () {
-    triggerLogsDebounced();
-  });
+      logSearchInput.addEventListener("input", function () {
+        triggerLogsDebounced();
+      });
 
-  logSearchInput.addEventListener('keydown', function (ev) {
-    if (ev.key === 'Enter') {
-      if (logSearchTimer) { clearTimeout(logSearchTimer); logSearchTimer = null; }
-      window.OzarkDashboard.loadLogs().catch(function () {});
+      logSearchInput.addEventListener("keydown", function (ev) {
+        if (ev.key === "Enter") {
+          if (logSearchTimer) {
+            clearTimeout(logSearchTimer);
+            logSearchTimer = null;
+          }
+          window.OzarkDashboard.loadLogs().catch(function () {});
+        }
+      });
     }
-  });
-	}
 
     // Config buttons
-    var btnReloadGuildConfig = document.getElementById('btnReloadGuildConfig');
+    var btnReloadGuildConfig = document.getElementById("btnReloadGuildConfig");
     if (btnReloadGuildConfig) {
-      btnReloadGuildConfig.addEventListener('click', function () {
+      btnReloadGuildConfig.addEventListener("click", function () {
         loadGuildConfig().catch(function () {});
       });
     }
 
-    var btnSaveGuildConfig = document.getElementById('btnSaveGuildConfig');
+    var btnSaveGuildConfig = document.getElementById("btnSaveGuildConfig");
     if (btnSaveGuildConfig) {
-      btnSaveGuildConfig.addEventListener('click', function () {
+      btnSaveGuildConfig.addEventListener("click", function () {
         saveGuildConfig().catch(function () {});
       });
     }
 
-    var btnSaveBotMaintenance = document.getElementById('btnSaveBotMaintenance');
-    if (btnSaveBotMaintenance) btnSaveBotMaintenance.addEventListener('click', function () {
-      saveBotMaintenance().catch(function () {});
-    });
+    var btnSaveBotMaintenance = document.getElementById(
+      "btnSaveBotMaintenance",
+    );
+    if (btnSaveBotMaintenance)
+      btnSaveBotMaintenance.addEventListener("click", function () {
+        saveBotMaintenance().catch(function () {});
+      });
 
     // Trust presets + save (Config -> Extras -> Trust)
-    var trustPresetSelect = document.getElementById('trustPresetSelect');
-    var btnApplyTrustPreset = document.getElementById('btnApplyTrustPreset');
-    var btnSaveTrustConfig = document.getElementById('btnSaveTrustConfig');
-    var trustSaveStatus = document.getElementById('trustSaveStatus');
+    var trustPresetSelect = document.getElementById("trustPresetSelect");
+    var btnApplyTrustPreset = document.getElementById("btnApplyTrustPreset");
+    var btnSaveTrustConfig = document.getElementById("btnSaveTrustConfig");
+    var trustSaveStatus = document.getElementById("trustSaveStatus");
 
     function setTrustStatus(msg) {
       if (!trustSaveStatus) return;
-      trustSaveStatus.textContent = msg || '';
+      trustSaveStatus.textContent = msg || "";
     }
 
     function markTrustDirty() {
       state.trustDirty = true;
-      setTrustStatus(t('trust_status_unsaved'));
+      setTrustStatus(t("trust_status_unsaved"));
     }
 
     // Bind input changes -> mark dirty + switch to "custom"
     var trustInputIds = [
-      'trustBaseInput','trustMinInput','trustMaxInput',
-      'trustWarnPenaltyInput','trustMutePenaltyInput',
-      'trustRegenPerDayInput','trustRegenMaxDaysInput',
-      'trustLowThresholdInput','trustHighThresholdInput'
+      "trustBaseInput",
+      "trustMinInput",
+      "trustMaxInput",
+      "trustWarnPenaltyInput",
+      "trustMutePenaltyInput",
+      "trustRegenPerDayInput",
+      "trustRegenMaxDaysInput",
+      "trustLowThresholdInput",
+      "trustHighThresholdInput",
     ];
     trustInputIds.forEach(function (id) {
       var el = document.getElementById(id);
       if (!el || el.dataset.bound) return;
-      el.dataset.bound = '1';
-      el.addEventListener('input', function () {
+      el.dataset.bound = "1";
+      el.addEventListener("input", function () {
         clearInlineError(el);
-        if (trustPresetSelect) trustPresetSelect.value = 'custom';
+        if (trustPresetSelect) trustPresetSelect.value = "custom";
         state.trustExtraOverride = null;
         markTrustDirty();
       });
@@ -3007,69 +3590,80 @@ function deleteTempVoiceBaseAt(index) {
     // Presets: update the numeric fields immediately when selecting a preset
     // (still only persists after clicking "Guardar Trust").
     if (trustPresetSelect && !trustPresetSelect.dataset.boundChange) {
-      trustPresetSelect.dataset.boundChange = '1';
-      trustPresetSelect.addEventListener('change', function () {
-        var key = trustPresetSelect.value || 'custom';
-        if (!TRUST_PRESETS[key] || key === 'custom') {
+      trustPresetSelect.dataset.boundChange = "1";
+      trustPresetSelect.addEventListener("change", function () {
+        var key = trustPresetSelect.value || "custom";
+        if (!TRUST_PRESETS[key] || key === "custom") {
           // Custom: do nothing; user edits the fields manually.
           return;
         }
         setTrustInputs(TRUST_PRESETS[key]);
         state.trustExtraOverride = TRUST_PRESETS[key];
         markTrustDirty();
-        setTrustStatus(t('trust_status_preset_applied'));
+        setTrustStatus(t("trust_status_preset_applied"));
       });
     }
 
-
     if (btnApplyTrustPreset && !btnApplyTrustPreset.dataset.bound) {
-      btnApplyTrustPreset.dataset.bound = '1';
-      btnApplyTrustPreset.addEventListener('click', function () {
+      btnApplyTrustPreset.dataset.bound = "1";
+      btnApplyTrustPreset.addEventListener("click", function () {
         if (!trustPresetSelect) return;
-        var key = trustPresetSelect.value || 'custom';
+        var key = trustPresetSelect.value || "custom";
         if (!TRUST_PRESETS[key]) {
-          trustPresetSelect.value = 'custom';
+          trustPresetSelect.value = "custom";
           return;
         }
         setTrustInputs(TRUST_PRESETS[key]);
         state.trustExtraOverride = TRUST_PRESETS[key];
         markTrustDirty();
-        toast(t('trust_preset_applied'), { type: 'success' });
+        toast(t("trust_preset_applied"), { type: "success" });
       });
     }
 
     if (btnSaveTrustConfig && !btnSaveTrustConfig.dataset.bound) {
-      btnSaveTrustConfig.dataset.bound = '1';
-      btnSaveTrustConfig.addEventListener('click', function () {
+      btnSaveTrustConfig.dataset.bound = "1";
+      btnSaveTrustConfig.addEventListener("click", function () {
         (async function () {
           try {
             var core = getTrustInputs();
             var v = validateTrustCore(core);
             // Clear previous inline errors
             clearInlineErrors([
-              'trustBaseInput','trustMinInput','trustMaxInput',
-              'trustWarnPenaltyInput','trustMutePenaltyInput',
-              'trustRegenPerDayInput','trustRegenMaxDaysInput',
-              'trustLowThresholdInput','trustHighThresholdInput'
+              "trustBaseInput",
+              "trustMinInput",
+              "trustMaxInput",
+              "trustWarnPenaltyInput",
+              "trustMutePenaltyInput",
+              "trustRegenPerDayInput",
+              "trustRegenMaxDaysInput",
+              "trustLowThresholdInput",
+              "trustHighThresholdInput",
             ]);
             if (!v.ok) {
               (v.fields || []).forEach(function (id) {
                 setInlineError(document.getElementById(id), v.msg);
               });
-              toast(v.msg, { type: 'warn' });
+              toast(v.msg, { type: "warn" });
               return;
             }
-            var presetKey = trustPresetSelect ? trustPresetSelect.value : 'custom';
+            var presetKey = trustPresetSelect
+              ? trustPresetSelect.value
+              : "custom";
             var patch = buildTrustPatch(core, presetKey);
 
             btnSaveTrustConfig.disabled = true;
-            btnSaveTrustConfig.classList.add('is-loading');
+            btnSaveTrustConfig.classList.add("is-loading");
 
-            var res = await apiPatch('/guilds/' + encodeURIComponent(state.guildId) + '/trust-config', {
-              trustOverrides: patch.trust
-            });
+            var res = await apiPatch(
+              "/guilds/" + encodeURIComponent(state.guildId) + "/trust-config",
+              {
+                trustOverrides: patch.trust,
+              },
+            );
             if (!res || res.ok === false) {
-              throw new Error((res && (res.error || res.message)) || 'SAVE_FAILED');
+              throw new Error(
+                (res && (res.error || res.message)) || "SAVE_FAILED",
+              );
             }
 
             state.trustDirty = false;
@@ -3082,17 +3676,22 @@ function deleteTempVoiceBaseAt(index) {
               }
             }
 
-            setTrustStatus('');
-            toast(t('trust_save_ok'), { type: 'success' });
+            setTrustStatus("");
+            toast(t("trust_save_ok"), { type: "success" });
             // Refresh config panel to update computed preview labels
             loadGuildConfig().catch(function () {});
           } catch (e) {
-            console.error('Failed to save trust config', e);
-            var msg = (e && e.apiMessage) ? e.apiMessage : (e && e.message ? e.message : t('trust_save_error'));
-            toast(msg, { type: 'error' });
+            console.error("Failed to save trust config", e);
+            var msg =
+              e && e.apiMessage
+                ? e.apiMessage
+                : e && e.message
+                  ? e.message
+                  : t("trust_save_error");
+            toast(msg, { type: "error" });
           } finally {
             btnSaveTrustConfig.disabled = false;
-            btnSaveTrustConfig.classList.remove('is-loading');
+            btnSaveTrustConfig.classList.remove("is-loading");
             applyPermissionGates();
           }
         })();
@@ -3100,172 +3699,189 @@ function deleteTempVoiceBaseAt(index) {
     }
 
     // Login form
-    var loginScreen = document.getElementById('loginScreen');
-    var loginDiscordBtn = document.getElementById('loginDiscordBtn');
-    var loginError = document.getElementById('loginError');
+    var loginScreen = document.getElementById("loginScreen");
+    var loginDiscordBtn = document.getElementById("loginDiscordBtn");
+    var loginError = document.getElementById("loginError");
 
     // Guild selector overlay
-    var guildSelectScreen = document.getElementById('guildSelectScreen');
-    var guildSelectList = document.getElementById('guildSelectList');
-    var guildSelectError = document.getElementById('guildSelectError');
-    var guildSelectPremiumAdmin = document.getElementById('guildSelectPremiumAdmin');
+    var guildSelectScreen = document.getElementById("guildSelectScreen");
+    var guildSelectList = document.getElementById("guildSelectList");
+    var guildSelectError = document.getElementById("guildSelectError");
+    var guildSelectPremiumAdmin = document.getElementById(
+      "guildSelectPremiumAdmin",
+    );
 
     if (guildSelectPremiumAdmin) {
-      guildSelectPremiumAdmin.addEventListener('click', function () {
-        if (guildSelectScreen) guildSelectScreen.classList.add('hidden');
-        setTab('premium-admin');
+      guildSelectPremiumAdmin.addEventListener("click", function () {
+        if (guildSelectScreen) guildSelectScreen.classList.add("hidden");
+        setTab("premium-admin");
       });
     }
 
     function showGuildSelect(items) {
       if (!guildSelectScreen || !guildSelectList) return;
       if (guildSelectPremiumAdmin) {
-        var isBotOperator = state.me && (state.me.role === 'BOT_ADMIN' || state.me.role === 'BOT_OWNER');
-        guildSelectPremiumAdmin.classList.toggle('hidden', !isBotOperator);
+        var isBotOperator =
+          state.me &&
+          (state.me.role === "BOT_ADMIN" || state.me.role === "BOT_OWNER");
+        guildSelectPremiumAdmin.classList.toggle("hidden", !isBotOperator);
       }
       if (!Array.isArray(items) || items.length < 2) {
-        guildSelectScreen.classList.add('hidden');
+        guildSelectScreen.classList.add("hidden");
         return;
       }
-      guildSelectList.innerHTML = '';
-      if (guildSelectError) guildSelectError.textContent = '';
+      guildSelectList.innerHTML = "";
+      if (guildSelectError) guildSelectError.textContent = "";
 
       items.forEach(function (g) {
         if (!g || !g.id) return;
-        var btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'guild-select-item';
+        var btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "guild-select-item";
 
-        var name = document.createElement('div');
-        name.className = 'guild-select-name';
+        var name = document.createElement("div");
+        name.className = "guild-select-name";
         name.textContent = g.name || g.id;
 
-        var sub = document.createElement('div');
-        sub.className = 'hint';
+        var sub = document.createElement("div");
+        sub.className = "hint";
         sub.textContent = g.id;
 
         btn.appendChild(name);
         btn.appendChild(sub);
 
-        btn.addEventListener('click', function () {
+        btn.addEventListener("click", function () {
           state.guildId = g.id;
           setStoredGuildId(g.id);
 
           try {
-            var guildPicker = document.getElementById('guildPicker');
+            var guildPicker = document.getElementById("guildPicker");
             if (guildPicker) guildPicker.value = g.id;
-          } catch (e) {}
+          } catch {}
 
           (async function () {
             var okScoped = await ensureGuildScopedToken(state.guildId);
             if (!okScoped) {
-              if (guildSelectError) guildSelectError.textContent = t('guild_select_error_access');
+              if (guildSelectError)
+                guildSelectError.textContent = t("guild_select_error_access");
               return;
             }
             await loadGuildDashboardLanguage(state.guildId);
             updateTabAccess();
-            guildSelectScreen.classList.add('hidden');
-            setTab('overview');
+            guildSelectScreen.classList.add("hidden");
+            setTab("overview");
           })().catch(function () {});
         });
 
         guildSelectList.appendChild(btn);
       });
 
-      guildSelectScreen.classList.remove('hidden');
+      guildSelectScreen.classList.remove("hidden");
     }
     window.OzarkDashboard.showGuildSelect = showGuildSelect;
 
     function showLogin() {
-      if (loginScreen) loginScreen.classList.remove('hidden');
-      if (loginError) loginError.textContent = '';
-      try { if (loginDiscordBtn) loginDiscordBtn.focus(); } catch (e) {}
+      if (loginScreen) loginScreen.classList.remove("hidden");
+      if (loginError) loginError.textContent = "";
+      try {
+        if (loginDiscordBtn) loginDiscordBtn.focus();
+      } catch {}
     }
     window.OzarkDashboard.showLogin = showLogin;
 
     function hideLogin() {
-      if (loginScreen) loginScreen.classList.add('hidden');
-      if (loginError) loginError.textContent = '';
+      if (loginScreen) loginScreen.classList.add("hidden");
+      if (loginError) loginError.textContent = "";
     }
 
     // Bind login / invite actions (always, regardless of auth state)
     if (loginDiscordBtn && !loginDiscordBtn.dataset.bound) {
-      loginDiscordBtn.dataset.bound = '1';
-      loginDiscordBtn.addEventListener('click', function () {
-        try { window.location.href = '/api/auth/discord'; } catch (e) {}
+      loginDiscordBtn.dataset.bound = "1";
+      loginDiscordBtn.addEventListener("click", function () {
+        try {
+          window.location.href = "/api/auth/discord";
+        } catch {}
       });
     }
 
-    var loginAddBotBtn = document.getElementById('loginAddBotBtn');
+    var loginAddBotBtn = document.getElementById("loginAddBotBtn");
     if (loginAddBotBtn && !loginAddBotBtn.dataset.bound) {
-      loginAddBotBtn.dataset.bound = '1';
-      loginAddBotBtn.addEventListener('click', function () {
+      loginAddBotBtn.dataset.bound = "1";
+      loginAddBotBtn.addEventListener("click", function () {
         (async function () {
           try {
-            var r = await fetch('/api/public/invite', { method: 'GET' });
-            var j = await r.json().catch(function () { return null; });
+            var r = await fetch("/api/public/invite", { method: "GET" });
+            var j = await r.json().catch(function () {
+              return null;
+            });
             if (j && j.ok && j.url) {
-              window.open(j.url, '_blank', 'noopener');
+              window.open(j.url, "_blank", "noopener");
             } else {
-              toast(t('add_bot_error'), { type: 'error' });
+              toast(t("add_bot_error"), { type: "error" });
             }
-          } catch (e) {
-            toast(t('add_bot_error'), { type: 'error' });
+          } catch {
+            toast(t("add_bot_error"), { type: "error" });
           }
         })();
       });
     }
 
-    var addBotBtn = document.getElementById('addBotBtn');
+    var addBotBtn = document.getElementById("addBotBtn");
     if (addBotBtn && !addBotBtn.dataset.bound) {
-      addBotBtn.dataset.bound = '1';
-      addBotBtn.addEventListener('click', function () {
+      addBotBtn.dataset.bound = "1";
+      addBotBtn.addEventListener("click", function () {
         (async function () {
           try {
-            var r = await apiGet('/invite');
+            var r = await apiGet("/invite");
             if (r && r.ok && r.url) {
-              window.open(r.url, '_blank', 'noopener');
+              window.open(r.url, "_blank", "noopener");
             } else {
-              toast(t('add_bot_error'), { type: 'error' });
+              toast(t("add_bot_error"), { type: "error" });
             }
-          } catch (e) {
-            toast(t('add_bot_error'), { type: 'error' });
+          } catch {
+            toast(t("add_bot_error"), { type: "error" });
           }
         })();
       });
     }
 
-    var logoutBtn = document.getElementById('logoutBtn');
+    var logoutBtn = document.getElementById("logoutBtn");
     if (logoutBtn && !logoutBtn.dataset.bound) {
-      logoutBtn.dataset.bound = '1';
-      logoutBtn.addEventListener('click', function () {
+      logoutBtn.dataset.bound = "1";
+      logoutBtn.addEventListener("click", function () {
         forceLogout({ redirect: true });
       });
     }
 
-    var profileTrigger = document.getElementById('badgeProfile');
-    var profileDialog = document.getElementById('accountProfileDialog');
+    var profileTrigger = document.getElementById("badgeProfile");
+    var profileDialog = document.getElementById("accountProfileDialog");
     function closeAccountProfile() {
       if (profileDialog && profileDialog.open) profileDialog.close();
     }
     if (profileTrigger && profileDialog) {
-      profileTrigger.addEventListener('click', function () {
+      profileTrigger.addEventListener("click", function () {
         const me = state.me || {};
-        const roleKey = me.role === 'BOT_OWNER' ? 'profile_bot_owner'
-          : me.role === 'BOT_ADMIN' ? 'profile_bot_admin'
-            : me.role === 'GUILD_ADMIN' ? 'profile_guild_admin' : 'profile_viewer';
-        document.getElementById('accountProfileUsername').textContent = me.username || 'Discord';
-        document.getElementById('accountProfileId').textContent = me.id || '—';
-        document.getElementById('accountProfileRole').textContent = t(roleKey);
+        const roleKey =
+          me.role === "BOT_OWNER"
+            ? "profile_bot_owner"
+            : me.role === "BOT_ADMIN"
+              ? "profile_bot_admin"
+              : me.role === "GUILD_ADMIN"
+                ? "profile_guild_admin"
+                : "profile_viewer";
+        document.getElementById("accountProfileUsername").textContent =
+          me.username || "Discord";
+        document.getElementById("accountProfileId").textContent = me.id || "—";
+        document.getElementById("accountProfileRole").textContent = t(roleKey);
         profileDialog.showModal();
       });
       [
-        document.getElementById('btnCloseAccountProfile'),
-        document.getElementById('btnCloseAccountProfileFooter')
+        document.getElementById("btnCloseAccountProfile"),
+        document.getElementById("btnCloseAccountProfileFooter"),
       ].forEach(function (button) {
-        if (button) button.addEventListener('click', closeAccountProfile);
+        if (button) button.addEventListener("click", closeAccountProfile);
       });
-      profileDialog.addEventListener('click', function (event) {
+      profileDialog.addEventListener("click", function (event) {
         if (event.target === profileDialog) closeAccountProfile();
       });
     }
@@ -3277,13 +3893,13 @@ function deleteTempVoiceBaseAt(index) {
       if (state.me && state.me.id) {
         hideLogin();
         await loadGuilds().catch(function () {});
-        setTab('overview');
+        setTab("overview");
       } else {
         showLogin();
       }
-      document.documentElement.classList.remove('i18n-loading');
+      document.documentElement.classList.remove("i18n-loading");
     })();
-});
+  });
 
   // Expose key parts on global namespace for future multi-file split
   window.OzarkDashboard.state = state;
@@ -3302,132 +3918,160 @@ function deleteTempVoiceBaseAt(index) {
   window.OzarkDashboard.createLogRow = createLogRow;
 
   // JSON import/export helpers for guild config
-  
-async function exportGuildConfigJson() {
-  if (!state.guildId) return;
-  if (typeof document === 'undefined') return;
 
-  try {
-    const cfg = await apiGet('/guilds/' + encodeURIComponent(state.guildId) + '/config');
-    const conf = cfg && cfg.config ? cfg.config : {};
+  async function exportGuildConfigJson() {
+    if (!state.guildId) return;
+    if (typeof document === "undefined") return;
+
+    try {
+      const cfg = await apiGet(
+        "/guilds/" + encodeURIComponent(state.guildId) + "/config",
+      );
+      const conf = cfg && cfg.config ? cfg.config : {};
+
+      const payload = {
+        guildId: conf.guildId || state.guildId || null,
+        language: typeof conf.language === "string" ? conf.language : "auto",
+        timezone:
+          typeof conf.timezone === "string" && conf.timezone.trim()
+            ? conf.timezone.trim()
+            : null,
+        logChannelId: conf.logChannelId || null,
+        dashboardLogChannelId: conf.dashboardLogChannelId || null,
+        staffRoleIds: Array.isArray(conf.staffRoleIds) ? conf.staffRoleIds : [],
+      };
+
+      const json = JSON.stringify(payload, null, 2);
+
+      const ta = document.getElementById("configJsonExport");
+      if (ta) {
+        ta.value = json;
+      }
+
+      try {
+        const blob = new Blob([json], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download =
+          "rabbit-guild-config-" + (payload.guildId || "unknown") + ".json";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+      } catch (e) {
+        console.warn("Unable to trigger automatic JSON download:", e);
+      }
+
+      toast(t("config_saved"), { type: "success" });
+    } catch (err) {
+      console.error("Failed to export guild config JSON", err);
+      toast(t("config_error_generic"), { type: "error" });
+    }
+  }
+
+  async function importGuildConfigJson() {
+    if (!state.guildId) return;
+    if (typeof document === "undefined") return;
+
+    const ta = document.getElementById("configJsonImport");
+    if (!ta || !ta.value.trim()) {
+      toast(t("config_error_generic"), { type: "error" });
+      return;
+    }
+
+    let parsed = null;
+    try {
+      parsed = JSON.parse(ta.value);
+    } catch (e) {
+      console.error("Invalid JSON for import", e);
+      toast(t("config_error_generic"), { type: "error" });
+      return;
+    }
 
     const payload = {
-      guildId: conf.guildId || state.guildId || null,
-      language: typeof conf.language === 'string' ? conf.language : 'auto',
-      timezone: (typeof conf.timezone === 'string' && conf.timezone.trim()) ? conf.timezone.trim() : null,
-      logChannelId: conf.logChannelId || null,
-      dashboardLogChannelId: conf.dashboardLogChannelId || null,
-      staffRoleIds: Array.isArray(conf.staffRoleIds) ? conf.staffRoleIds : []
+      logChannelId: parsed.logChannelId || null,
+      dashboardLogChannelId: parsed.dashboardLogChannelId || null,
+      staffRoleIds: Array.isArray(parsed.staffRoleIds)
+        ? parsed.staffRoleIds.filter(Boolean)
+        : [],
     };
 
-    const json = JSON.stringify(payload, null, 2);
+    if (typeof parsed.language === "string") {
+      payload.language = parsed.language;
+    }
+    if (typeof parsed.timezone === "string") {
+      payload.timezone = parsed.timezone;
+    }
 
-    const ta = document.getElementById('configJsonExport');
-    if (ta) {
-      ta.value = json;
+    if (
+      typeof window.confirm === "function" &&
+      !window.confirm(t("config_import_confirm"))
+    ) {
+      return;
     }
 
     try {
-      const blob = new Blob([json], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'rabbit-guild-config-' + (payload.guildId || 'unknown') + '.json';
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-    } catch (e) {
-      console.warn('Unable to trigger automatic JSON download:', e);
+      await apiPost(
+        "/guilds/" + encodeURIComponent(state.guildId) + "/config",
+        payload,
+      );
+      toast(t("config_saved"), { type: "success" });
+
+      if (payload.language) {
+        state.guildLanguage = payload.language;
+        await setDashboardLanguage(payload.language);
+      }
+      if (Object.prototype.hasOwnProperty.call(payload, "timezone")) {
+        state.guildTimezone = payload.timezone;
+      }
+
+      await loadGuildConfig();
+    } catch (err) {
+      console.error("Failed to import guild config JSON", err);
+      toast(t("config_error_save"), { type: "error" });
     }
-
-    toast(t('config_saved'), { type: 'success' });
-  } catch (err) {
-    console.error('Failed to export guild config JSON', err);
-    toast(t('config_error_generic'), { type: 'error' });
   }
-}
-
-
-async function importGuildConfigJson() {
-  if (!state.guildId) return;
-  if (typeof document === 'undefined') return;
-
-  const ta = document.getElementById('configJsonImport');
-  if (!ta || !ta.value.trim()) {
-    toast(t('config_error_generic'), { type: 'error' });
-    return;
-  }
-
-  let parsed = null;
-  try {
-    parsed = JSON.parse(ta.value);
-  } catch (e) {
-    console.error('Invalid JSON for import', e);
-    toast(t('config_error_generic'), { type: 'error' });
-    return;
-  }
-
-  const payload = {
-    logChannelId: parsed.logChannelId || null,
-    dashboardLogChannelId: parsed.dashboardLogChannelId || null,
-    staffRoleIds: Array.isArray(parsed.staffRoleIds) ? parsed.staffRoleIds.filter(Boolean) : []
-  };
-
-  if (typeof parsed.language === 'string') {
-    payload.language = parsed.language;
-  }
-  if (typeof parsed.timezone === 'string') {
-    payload.timezone = parsed.timezone;
-  }
-
-  if (typeof window.confirm === 'function' && !window.confirm(t('config_import_confirm'))) {
-    return;
-  }
-
-  try {
-    await apiPost('/guilds/' + encodeURIComponent(state.guildId) + '/config', payload);
-    toast(t('config_saved'), { type: 'success' });
-
-    if (payload.language) {
-      state.guildLanguage = payload.language;
-      await setDashboardLanguage(payload.language);
-    }
-    if (Object.prototype.hasOwnProperty.call(payload, 'timezone')) {
-      state.guildTimezone = payload.timezone;
-    }
-
-    await loadGuildConfig();
-  } catch (err) {
-    console.error('Failed to import guild config JSON', err);
-    toast(t('config_error_save'), { type: 'error' });
-  }
-}
 
   window.OzarkDashboard.exportGuildConfigJson = exportGuildConfigJson;
   window.OzarkDashboard.importGuildConfigJson = importGuildConfigJson;
-
 })(); // close main dashboard IIFE
 
 // Wire JSON import/export buttons (safe even if DOMContentLoaded already ran)
 (function () {
-  if (typeof document === 'undefined') return;
+  if (typeof document === "undefined") return;
   function bindJsonButtons() {
-    var btnExport = document.getElementById('configJsonExportBtn');
-    var btnImport = document.getElementById('configJsonImportBtn');
-    if (btnExport && window.OzarkDashboard && typeof window.OzarkDashboard.exportGuildConfigJson === 'function') {
-      btnExport.addEventListener('click', function () {
-        window.OzarkDashboard.exportGuildConfigJson().catch(function () {});
-      }, { once: true });
+    var btnExport = document.getElementById("configJsonExportBtn");
+    var btnImport = document.getElementById("configJsonImportBtn");
+    if (
+      btnExport &&
+      window.OzarkDashboard &&
+      typeof window.OzarkDashboard.exportGuildConfigJson === "function"
+    ) {
+      btnExport.addEventListener(
+        "click",
+        function () {
+          window.OzarkDashboard.exportGuildConfigJson().catch(function () {});
+        },
+        { once: true },
+      );
     }
-    if (btnImport && window.OzarkDashboard && typeof window.OzarkDashboard.importGuildConfigJson === 'function') {
-      btnImport.addEventListener('click', function () {
-        window.OzarkDashboard.importGuildConfigJson().catch(function () {});
-      }, { once: true });
+    if (
+      btnImport &&
+      window.OzarkDashboard &&
+      typeof window.OzarkDashboard.importGuildConfigJson === "function"
+    ) {
+      btnImport.addEventListener(
+        "click",
+        function () {
+          window.OzarkDashboard.importGuildConfigJson().catch(function () {});
+        },
+        { once: true },
+      );
     }
   }
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', bindJsonButtons);
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", bindJsonButtons);
   } else {
     bindJsonButtons();
   }

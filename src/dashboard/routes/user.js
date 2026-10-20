@@ -1,8 +1,8 @@
 // src/dashboard/routes/user.js
 
-const { sendServerError } = require('./_errors');
-const rateLimit = require('../../systems/rateLimit');
-const { getGuild } = require('../../services/guildService');
+const { sendServerError } = require("./_errors");
+const rateLimit = require("../../systems/rateLimit");
+const { getGuild } = require("../../services/guildService");
 
 /**
  * User inspector route used by the dashboard Users tab right panel.
@@ -16,27 +16,32 @@ function registerUserRoutes({
   warningsService,
   infractionsService,
   config,
-  getTrustConfig,
   getTrustLabel,
-  getEffectiveMuteDuration
+  getEffectiveMuteDuration,
 }) {
-  const guardGuildQuery = typeof requireGuildAccess === 'function'
-    ? requireGuildAccess({ from: 'query', key: 'guildId' })
-    : (req, res, next) => next();
+  const guardGuildQuery =
+    typeof requireGuildAccess === "function"
+      ? requireGuildAccess({ from: "query", key: "guildId" })
+      : (req, res, next) => next();
 
   app.get(
-    '/api/user',
+    "/api/user",
     requireDashboardAuth,
     guardGuildQuery,
-    rateLimit({ windowMs: 60_000, max: 120, keyPrefix: 'rl:user:inspect:' }),
+    rateLimit({ windowMs: 60_000, max: 120, keyPrefix: "rl:user:inspect:" }),
     async (req, res) => {
       try {
-        const guildId = (req.query.guildId || '').toString().trim();
-        const rawUser = (req.query.userId || '').toString().trim();
-        const limit = Math.min(Math.max(parseInt(req.query.limit || '10', 10) || 10, 1), 50);
+        const guildId = (req.query.guildId || "").toString().trim();
+        const rawUser = (req.query.userId || "").toString().trim();
+        const limit = Math.min(
+          Math.max(parseInt(req.query.limit || "10", 10) || 10, 1),
+          50,
+        );
 
         if (!guildId || !rawUser) {
-          return res.status(400).json({ ok: false, error: 'guildId and userId are required' });
+          return res
+            .status(400)
+            .json({ ok: false, error: "guildId and userId are required" });
         }
 
         let resolvedUserId = null;
@@ -56,12 +61,17 @@ function registerUserRoutes({
 
             if (/^[0-9]{10,20}$/.test(candidate)) {
               resolvedUserId = candidate;
-              discordMember = await g.members.fetch(candidate).catch(() => null);
+              discordMember = await g.members
+                .fetch(candidate)
+                .catch(() => null);
               discordUser =
-                discordMember?.user || (await _client.users.fetch(candidate).catch(() => null));
+                discordMember?.user ||
+                (await _client.users.fetch(candidate).catch(() => null));
             } else {
               // Search by name/tag within guild
-              const coll = await g.members.fetch({ query: candidate, limit: 1 }).catch(() => null);
+              const coll = await g.members
+                .fetch({ query: candidate, limit: 1 })
+                .catch(() => null);
               const found = coll && coll.first ? coll.first() : null;
               if (found) {
                 resolvedUserId = found.id;
@@ -73,12 +83,15 @@ function registerUserRoutes({
         }
 
         if (!resolvedUserId) {
-          return res
-            .status(404)
-            .json({ ok: false, error: 'User not found in guild (by ID/mention/name).' });
+          return res.status(404).json({
+            ok: false,
+            error: "User not found in guild (by ID/mention/name).",
+          });
         }
 
-        const dbUser = await warningsService.getOrCreateUser(guildId, resolvedUserId).catch(() => null);
+        const dbUser = await warningsService
+          .getOrCreateUser(guildId, resolvedUserId)
+          .catch(() => null);
         const infractions = await infractionsService
           .getRecentInfractions(guildId, resolvedUserId, limit)
           .catch(() => []);
@@ -86,14 +99,17 @@ function registerUserRoutes({
           .countInfractionsByType(guildId, resolvedUserId)
           .catch(() => ({}));
 
-        const trustCfg = await require('../../utils/trust').getGuildTrustConfig(guildId);
-        const autoMuteCfg = (config.automation && config.automation.autoMute) || {};
+        const trustCfg =
+          await require("../../utils/trust").getGuildTrustConfig(guildId);
+        const autoMuteCfg =
+          (config.automation && config.automation.autoMute) || {};
 
         let trustLabel = null;
         let nextPenalty = null;
 
         if (dbUser && trustCfg && trustCfg.enabled !== false) {
-          const trustValue = typeof dbUser.trust === 'number' ? dbUser.trust : trustCfg.base;
+          const trustValue =
+            typeof dbUser.trust === "number" ? dbUser.trust : trustCfg.base;
 
           try {
             trustLabel = getTrustLabel(trustValue, trustCfg);
@@ -102,16 +118,28 @@ function registerUserRoutes({
           }
 
           try {
-            const warnsCount = counts && typeof counts.WARN === 'number' ? counts.WARN : 0;
-            const warnsToMute = typeof autoMuteCfg.warnsToMute === 'number' ? autoMuteCfg.warnsToMute : 0;
+            const warnsCount =
+              counts && typeof counts.WARN === "number" ? counts.WARN : 0;
+            const warnsToMute =
+              typeof autoMuteCfg.warnsToMute === "number"
+                ? autoMuteCfg.warnsToMute
+                : 0;
             const baseMuteMs =
-              typeof autoMuteCfg.muteDurationMs === 'number'
+              typeof autoMuteCfg.muteDurationMs === "number"
                 ? autoMuteCfg.muteDurationMs
                 : 10 * 60 * 1000;
 
-            if (autoMuteCfg && autoMuteCfg.enabled !== false && warnsToMute > 0) {
+            if (
+              autoMuteCfg &&
+              autoMuteCfg.enabled !== false &&
+              warnsToMute > 0
+            ) {
               const remaining = Math.max(warnsToMute - warnsCount, 0);
-              const effectiveMuteMs = getEffectiveMuteDuration(baseMuteMs, trustCfg, trustValue);
+              const effectiveMuteMs = getEffectiveMuteDuration(
+                baseMuteMs,
+                trustCfg,
+                trustValue,
+              );
               const mins = Math.max(1, Math.round(effectiveMuteMs / 60000));
 
               nextPenalty = {
@@ -119,7 +147,7 @@ function registerUserRoutes({
                 warnsCount,
                 warnsToMute,
                 remaining,
-                estimatedMuteMinutes: mins
+                estimatedMuteMinutes: mins,
               };
             } else {
               nextPenalty = { automationEnabled: false };
@@ -135,10 +163,22 @@ function registerUserRoutes({
             id: resolvedUserId,
             tag: discordUser?.tag || null,
             username: discordUser?.username || null,
-            avatarUrl: discordUser?.displayAvatarURL?.({ extension: 'png', size: 128 }) || null,
-            createdAt: discordUser?.createdAt ? discordUser.createdAt.toISOString() : null,
-            joinedAt: discordMember?.joinedAt ? discordMember.joinedAt.toISOString() : null,
-            roles: discordMember?.roles?.cache?.map((r) => ({ id: r.id, name: r.name })) || []
+            avatarUrl:
+              discordUser?.displayAvatarURL?.({
+                extension: "png",
+                size: 128,
+              }) || null,
+            createdAt: discordUser?.createdAt
+              ? discordUser.createdAt.toISOString()
+              : null,
+            joinedAt: discordMember?.joinedAt
+              ? discordMember.joinedAt.toISOString()
+              : null,
+            roles:
+              discordMember?.roles?.cache?.map((r) => ({
+                id: r.id,
+                name: r.name,
+              })) || [],
           },
           db: dbUser
             ? {
@@ -154,21 +194,21 @@ function registerUserRoutes({
                 trustHistory: Array.isArray(dbUser.trustHistory)
                   ? dbUser.trustHistory.slice(-30).map((e) => ({
                       at: e && e.at ? new Date(e.at).toISOString() : null,
-                      delta: typeof e?.delta === 'number' ? e.delta : 0,
-                      trust: typeof e?.trust === 'number' ? e.trust : null,
-                      reason: e?.reason || null
+                      delta: typeof e?.delta === "number" ? e.delta : 0,
+                      trust: typeof e?.trust === "number" ? e.trust : null,
+                      reason: e?.reason || null,
                     }))
                   : [],
-                nextPenalty
+                nextPenalty,
               }
             : null,
           counts,
-          infractions
+          infractions,
         });
       } catch (err) {
-        return sendServerError(res, '/api/user', err);
+        return sendServerError(res, "/api/user", err);
       }
-    }
+    },
   );
 }
 

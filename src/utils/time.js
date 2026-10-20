@@ -5,7 +5,7 @@
  * Returns milliseconds, or null if invalid.
  */
 function parseDuration(input) {
-  if (!input || typeof input !== 'string') return null;
+  if (!input || typeof input !== "string") return null;
 
   const trimmed = input.trim().toLowerCase();
 
@@ -24,13 +24,13 @@ function parseDuration(input) {
   if (!value || value <= 0) return null;
 
   switch (unit) {
-    case 's':
+    case "s":
       return value * 1000;
-    case 'm':
+    case "m":
       return value * 60 * 1000;
-    case 'h':
+    case "h":
       return value * 60 * 60 * 1000;
-    case 'd':
+    case "d":
       return value * 24 * 60 * 60 * 1000;
     default:
       return null;

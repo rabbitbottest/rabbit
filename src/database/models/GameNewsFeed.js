@@ -1,6 +1,6 @@
 // src/database/models/GameNewsFeed.js
 
-const { Schema, model } = require('mongoose');
+const { Schema, model } = require("mongoose");
 
 const gameNewsFeedSchema = new Schema(
   {
@@ -29,12 +29,12 @@ const gameNewsFeedSchema = new Schema(
     maxPerCycle: { type: Number, default: null },
 
     // Optional list of terms: items whose title/content matches any term are skipped.
-    excludeKeywords: { type: [String], default: [] }
+    excludeKeywords: { type: [String], default: [] },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 // Non-unique index (same RSS can be used across multiple guilds).
 gameNewsFeedSchema.index({ guildId: 1, feedUrl: 1 });
 
-module.exports = model('GameNewsFeed', gameNewsFeedSchema);
+module.exports = model("GameNewsFeed", gameNewsFeedSchema);

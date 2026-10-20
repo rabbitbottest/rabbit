@@ -1,27 +1,34 @@
 // src/events/messageCreate.js
 
-const config = require('../config/defaultConfig');
-const autoModeration = require('../systems/autoModeration');
-const antiSpam = require('../systems/antiSpam');
+const config = require("../config/defaultConfig");
+const autoModeration = require("../systems/autoModeration");
+const antiSpam = require("../systems/antiSpam");
 
 let levels = null;
 try {
-  levels = require('../systems/levels');
+  levels = require("../systems/levels");
 } catch (err) {
-  console.warn('[messageCreate] levels system not available:', err?.message || err);
+  console.warn(
+    "[messageCreate] levels system not available:",
+    err?.message || err,
+  );
 }
 
 let UserActivity = null;
-try { UserActivity = require('../database/models/UserActivity'); } catch {}
-const mongoose = require('../database/connect');
+try {
+  UserActivity = require("../database/models/UserActivity");
+} catch {}
+const mongoose = require("../database/connect");
 
 function getDayStartUtc(d = new Date()) {
-  const day = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 0, 0, 0, 0));
+  const day = new Date(
+    Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 0, 0, 0, 0),
+  );
   return day;
 }
 
 module.exports = (client) => {
-  client.on('messageCreate', async (message) => {
+  client.on("messageCreate", async (message) => {
     try {
       if (!message) return;
 
@@ -39,7 +46,7 @@ module.exports = (client) => {
       if (!message.author || message.author.bot) return;
 
       const content = message.content;
-      if (!content || typeof content !== 'string') return;
+      if (!content || typeof content !== "string") return;
 
       // Activity tracking (used by the dashboard panel "Utilizadores Online")
       if (UserActivity && mongoose?.connection?.readyState === 1) {
@@ -47,7 +54,7 @@ module.exports = (client) => {
         UserActivity.updateOne(
           { guildId: message.guild.id, userId: message.author.id, day },
           { $inc: { messages: 1 }, $set: { updatedAt: new Date() } },
-          { upsert: true }
+          { upsert: true },
         ).catch(() => null);
       }
 
@@ -62,16 +69,15 @@ module.exports = (client) => {
       }
 
       // Sistema de níveis (XP) — feature opcional "levels".
-      if (levels && typeof levels.awardXp === 'function') {
+      if (levels && typeof levels.awardXp === "function") {
         try {
           await levels.awardXp(client, message);
         } catch (err) {
-          console.error('[messageCreate] levels awardXp error:', err);
+          console.error("[messageCreate] levels awardXp error:", err);
         }
       }
     } catch (err) {
-      console.error('[messageCreate] Critical error:', err);
+      console.error("[messageCreate] Critical error:", err);
     }
   });
 };
-

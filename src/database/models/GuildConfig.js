@@ -1,13 +1,13 @@
 // src/database/models/GuildConfig.js
 
-const { Schema, model } = require('mongoose');
+const { Schema, model } = require("mongoose");
 
 const guildConfigSchema = new Schema(
   {
     guildId: { type: String, required: true, unique: true },
 
     // Idioma principal do servidor (auto|pt|en)
-    language: { type: String, default: 'auto' },
+    language: { type: String, default: "auto" },
 
     // Timezone principal do servidor (IANA, ex: Europe/Lisbon). Null => usa UTC.
     timezone: { type: String, default: null },
@@ -21,11 +21,10 @@ const guildConfigSchema = new Schema(
     // Canal onde a mensagem de suporte (tickets) será publicada
     ticketThreadChannelId: { type: String, default: null },
 
-
     // Roles de staff específicos por servidor (configurados na dashboard)
     staffRoleIds: {
       type: [String],
-      default: []
+      default: [],
     },
 
     // Roles de staff por funcionalidade (se vazio, cai em staffRoleIds)
@@ -34,7 +33,7 @@ const guildConfigSchema = new Schema(
       moderation: { type: [String], default: [] },
       gamenews: { type: [String], default: [] },
       logs: { type: [String], default: [] },
-      config: { type: [String], default: [] }
+      config: { type: [String], default: [] },
     },
 
     trustOverrides: { type: Schema.Types.Mixed, default: null },
@@ -43,7 +42,7 @@ const guildConfigSchema = new Schema(
     maintenanceMode: {
       enabled: { type: Boolean, default: false },
       message: { type: String, default: null },
-      allowStaff: { type: Boolean, default: true }
+      allowStaff: { type: Boolean, default: true },
     },
 
     // Premium por servidor, ativado por doação. Enquanto não estiver ativo, os
@@ -58,7 +57,7 @@ const guildConfigSchema = new Schema(
       purchasedByUserId: { type: String, default: null },
       // Legacy field for account licenses projected onto a guild before guild-only premium.
       accountUserId: { type: String, default: null },
-      testBypass: { type: Boolean, default: false }
+      testBypass: { type: Boolean, default: false },
     },
 
     // Configuração de voz temporária por guild
@@ -67,10 +66,8 @@ const guildConfigSchema = new Schema(
       baseChannelIds: { type: [String], default: [] },
       categoryId: { type: String, default: null },
       deleteDelaySeconds: { type: Number, default: 10 },
-      maxUsersPerRoom: { type: Number, default: null }
-    }
-    ,
-
+      maxUsersPerRoom: { type: Number, default: null },
+    },
     // Giveaways (GamerPower) per guild
     giveaways: {
       enabled: { type: Boolean, default: false },
@@ -81,16 +78,16 @@ const guildConfigSchema = new Schema(
       publicBaseUrl: { type: String, default: null },
 
       // GamerPower platform names (https://www.gamerpower.com/api-read)
-      platforms: { type: [String], default: ['steam'] },
+      platforms: { type: [String], default: ["steam"] },
 
       // GamerPower giveaway types (game|loot|beta)
-      types: { type: [String], default: ['game'] },
+      types: { type: [String], default: ["game"] },
 
       // Polling cadence (seconds). Effective min is enforced at runtime.
       pollIntervalSeconds: { type: Number, default: 60 },
 
       // 0 => unlimited
-      maxPerCycle: { type: Number, default: 0 }
+      maxPerCycle: { type: Number, default: 0 },
     },
 
     // Funcionalidades opcionais (tab "Funcionalidades" da dashboard).
@@ -100,7 +97,7 @@ const guildConfigSchema = new Schema(
       messageLogs: {
         enabled: { type: Boolean, default: false },
         channelId: { type: String, default: null },
-        ignoreBots: { type: Boolean, default: true }
+        ignoreBots: { type: Boolean, default: true },
       },
 
       // Cargos por reação (painel único por servidor)
@@ -113,17 +110,17 @@ const guildConfigSchema = new Schema(
             {
               _id: false,
               emoji: { type: String, default: null },
-              roleId: { type: String, default: null }
-            }
+              roleId: { type: String, default: null },
+            },
           ],
-          default: []
-        }
+          default: [],
+        },
       },
 
       // Auto-kick por número de infrações
       autoKick: {
         enabled: { type: Boolean, default: false },
-        infractionsToKick: { type: Number, default: 5 }
+        infractionsToKick: { type: Number, default: 5 },
       },
 
       // Níveis / XP
@@ -132,7 +129,7 @@ const guildConfigSchema = new Schema(
         xpMin: { type: Number, default: 15 },
         xpMax: { type: Number, default: 25 },
         cooldownSeconds: { type: Number, default: 60 },
-        announceChannelId: { type: String, default: null }
+        announceChannelId: { type: String, default: null },
       },
 
       // Starboard
@@ -140,12 +137,12 @@ const guildConfigSchema = new Schema(
         enabled: { type: Boolean, default: false },
         channelId: { type: String, default: null },
         threshold: { type: Number, default: 3 },
-        emoji: { type: String, default: '⭐' }
+        emoji: { type: String, default: "⭐" },
       },
 
       // Enquetes (polls)
       polls: {
-        enabled: { type: Boolean, default: false }
+        enabled: { type: Boolean, default: false },
       },
 
       // Verificação à entrada (botão num canal → atribui cargo)
@@ -157,7 +154,7 @@ const guildConfigSchema = new Schema(
         kickAfterMinutes: { type: Number, default: 0 },
         title: { type: String, default: null },
         description: { type: String, default: null },
-        buttonLabel: { type: String, default: null }
+        buttonLabel: { type: String, default: null },
       },
 
       // Tickets por reação (painel + thread privada)
@@ -165,13 +162,13 @@ const guildConfigSchema = new Schema(
         enabled: { type: Boolean, default: false },
         channelId: { type: String, default: null },
         messageId: { type: String, default: null },
-        openEmoji: { type: String, default: '🎫' },
-        closeEmoji: { type: String, default: '🔒' },
+        openEmoji: { type: String, default: "🎫" },
+        closeEmoji: { type: String, default: "🔒" },
         panelTitle: { type: String, default: null },
         panelDescription: { type: String, default: null },
         alreadyOpenMessage: { type: String, default: null },
         welcomeMessage: { type: String, default: null },
-        closeMessage: { type: String, default: null }
+        closeMessage: { type: String, default: null },
       },
 
       // Boas-vindas a novos membros
@@ -180,8 +177,8 @@ const guildConfigSchema = new Schema(
         channelId: { type: String, default: null },
         message: { type: String, default: null },
         embed: { type: Boolean, default: true },
-        color: { type: String, default: '#7c3aed' },
-        bannerUrl: { type: String, default: null }
+        color: { type: String, default: "#7c3aed" },
+        bannerUrl: { type: String, default: null },
       },
 
       // Mensagem de saída de membros
@@ -190,8 +187,8 @@ const guildConfigSchema = new Schema(
         channelId: { type: String, default: null },
         message: { type: String, default: null },
         embed: { type: Boolean, default: true },
-        color: { type: String, default: '#ef4444' },
-        bannerUrl: { type: String, default: null }
+        color: { type: String, default: "#ef4444" },
+        bannerUrl: { type: String, default: null },
       },
 
       // Estatísticas do servidor em canais de voz no topo
@@ -206,16 +203,29 @@ const guildConfigSchema = new Schema(
         leavesChannelId: { type: String, default: null },
         memberTemplate: { type: String, default: null },
         joinsTemplate: { type: String, default: null },
-        leavesTemplate: { type: String, default: null }
-      }
-    }
+        leavesTemplate: { type: String, default: null },
+      },
 
-  }
-,
+      // Publica memes SFW de uma fonte fixa num intervalo configurável.
+      memes: {
+        enabled: { type: Boolean, default: false },
+        channelId: { type: String, default: null },
+        intervalMinutes: { type: Number, default: 60 },
+      },
+
+      // Notifica um canal quando um streamer Twitch inicia uma transmissão.
+      twitch: {
+        enabled: { type: Boolean, default: false },
+        streamerName: { type: String, default: null },
+        channelId: { type: String, default: null },
+        roleId: { type: String, default: null },
+      },
+    },
+  },
   {
     timestamps: true,
-    versionKey: false
-  }
+    versionKey: false,
+  },
 );
 
-module.exports = model('GuildConfig', guildConfigSchema);
+module.exports = model("GuildConfig", guildConfigSchema);

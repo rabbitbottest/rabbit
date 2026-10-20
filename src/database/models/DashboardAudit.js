@@ -1,6 +1,6 @@
 // src/database/models/DashboardAudit.js
 
-const { Schema, model } = require('mongoose');
+const { Schema, model } = require("mongoose");
 
 const dashboardAuditSchema = new Schema(
   {
@@ -20,16 +20,16 @@ const dashboardAuditSchema = new Schema(
 
     payload: {
       type: Object,
-      default: null
-    }
+      default: null,
+    },
   },
   {
-    versionKey: false
-  }
+    versionKey: false,
+  },
 );
 
 dashboardAuditSchema.index({ at: -1 });
 dashboardAuditSchema.index({ route: 1, at: -1 });
 dashboardAuditSchema.index({ guildId: 1, at: -1 });
 
-module.exports = model('DashboardAudit', dashboardAuditSchema);
+module.exports = model("DashboardAudit", dashboardAuditSchema);

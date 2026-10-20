@@ -2,7 +2,7 @@
 //
 // Mapeia uma mensagem original para a sua entrada no canal starboard.
 
-const { Schema, model } = require('mongoose');
+const { Schema, model } = require("mongoose");
 
 const starboardEntrySchema = new Schema(
   {
@@ -13,14 +13,17 @@ const starboardEntrySchema = new Schema(
     starboardMessageId: { type: String, default: null },
     authorId: { type: String, default: null },
 
-    count: { type: Number, default: 0 }
+    count: { type: Number, default: 0 },
   },
   {
     timestamps: true,
-    versionKey: false
-  }
+    versionKey: false,
+  },
 );
 
-starboardEntrySchema.index({ guildId: 1, sourceMessageId: 1 }, { unique: true });
+starboardEntrySchema.index(
+  { guildId: 1, sourceMessageId: 1 },
+  { unique: true },
+);
 
-module.exports = model('StarboardEntry', starboardEntrySchema);
+module.exports = model("StarboardEntry", starboardEntrySchema);

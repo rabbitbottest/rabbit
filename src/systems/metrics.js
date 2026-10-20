@@ -19,28 +19,28 @@ function round(value) {
 // Substitui identificadores variáveis (snowflakes do Discord, ObjectIds, tokens)
 // por ":id" para que todas as chamadas caiam na mesma rota lógica.
 function normalizeRoutePath(rawPath) {
-  const raw = String(rawPath || '').split('?')[0];
-  if (!raw) return '/';
+  const raw = String(rawPath || "").split("?")[0];
+  if (!raw) return "/";
 
-  const parts = raw.split('/').map((segment) => {
+  const parts = raw.split("/").map((segment) => {
     if (!segment) return segment;
-    if (/^\d{5,}$/.test(segment)) return ':id';
-    if (/^[a-f0-9]{16,}$/i.test(segment)) return ':id';
+    if (/^\d{5,}$/.test(segment)) return ":id";
+    if (/^[a-f0-9]{16,}$/i.test(segment)) return ":id";
     return segment;
   });
 
-  return parts.join('/');
+  return parts.join("/");
 }
 
 function resolveRouteKey(req) {
-  const method = String((req && req.method) || 'GET').toUpperCase();
+  const method = String((req && req.method) || "GET").toUpperCase();
   const matched = req && req.route && req.route.path;
 
   let path;
-  if (typeof matched === 'string') {
-    path = `${(req && req.baseUrl) || ''}${matched}`;
+  if (typeof matched === "string") {
+    path = `${(req && req.baseUrl) || ""}${matched}`;
   } else {
-    path = (req && (req.path || req.url)) || '/';
+    path = (req && (req.path || req.url)) || "/";
   }
 
   return `${method} ${normalizeRoutePath(path)}`;
@@ -64,7 +64,7 @@ function recordHttpRequest(req, statusCode, durationMs) {
 
   if (!entry) {
     if (httpRoutes.size >= MAX_ROUTES) evictLeastUsed();
-    const separator = key.indexOf(' ');
+    const separator = key.indexOf(" ");
     entry = {
       method: key.slice(0, separator),
       route: key.slice(separator + 1),
@@ -74,7 +74,7 @@ function recordHttpRequest(req, statusCode, durationMs) {
       maxMs: 0,
       lastMs: 0,
       lastStatusCode: 0,
-      samples: []
+      samples: [],
     };
     httpRoutes.set(key, entry);
   }
@@ -99,7 +99,10 @@ function recordHttpRequest(req, statusCode, durationMs) {
 function percentile(samples, p) {
   if (!samples.length) return 0;
   const sorted = samples.slice().sort((a, b) => a - b);
-  const index = Math.min(sorted.length - 1, Math.max(0, Math.ceil((p / 100) * sorted.length) - 1));
+  const index = Math.min(
+    sorted.length - 1,
+    Math.max(0, Math.ceil((p / 100) * sorted.length) - 1),
+  );
   return sorted[index];
 }
 
@@ -121,7 +124,7 @@ function getMetrics() {
       p95Ms: round(percentile(entry.samples, 95)),
       maxMs: round(entry.maxMs),
       lastMs: round(entry.lastMs),
-      lastStatusCode: entry.lastStatusCode
+      lastStatusCode: entry.lastStatusCode,
     });
   }
 
@@ -131,7 +134,7 @@ function getMetrics() {
     generatedAt: new Date().toISOString(),
     uptimeSeconds: Math.floor(process.uptime()),
     totals: { requests, errors, routes: routes.length },
-    routes
+    routes,
   };
 }
 
@@ -143,51 +146,86 @@ function resetMetrics() {
 // Formato de texto (version 0.0.4) para scraping por Prometheus/Grafana.
 
 function prometheusLabels(labels) {
-  const entries = Object.entries(labels).filter(([, value]) => value !== undefined && value !== null);
-  if (!entries.length) return '';
+  const entries = Object.entries(labels).filter(
+    ([, value]) => value !== undefined && value !== null,
+  );
+  if (!entries.length) return "";
 
   const rendered = entries.map(([key, value]) => {
-    const escaped = String(value).replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n');
+    const escaped = String(value)
+      .replace(/\\/g, "\\\\")
+      .replace(/"/g, '\\"')
+      .replace(/\n/g, "\\n");
     return `${key}="${escaped}"`;
   });
 
-  return `{${rendered.join(',')}}`;
+  return `{${rendered.join(",")}}`;
 }
 
 function formatPrometheus(extra = {}) {
   const snapshot = getMetrics();
   const lines = [];
 
-  lines.push('# HELP rabbit_uptime_seconds Tempo de atividade do processo.');
-  lines.push('# TYPE rabbit_uptime_seconds gauge');
+  lines.push("# HELP rabbit_uptime_seconds Tempo de atividade do processo.");
+  lines.push("# TYPE rabbit_uptime_seconds gauge");
   lines.push(`rabbit_uptime_seconds ${snapshot.uptimeSeconds}`);
 
-  lines.push('# HELP rabbit_http_requests_total Pedidos HTTP processados por rota.');
-  lines.push('# TYPE rabbit_http_requests_total counter');
+  lines.push(
+    "# HELP rabbit_http_requests_total Pedidos HTTP processados por rota.",
+  );
+  lines.push("# TYPE rabbit_http_requests_total counter");
   for (const route of snapshot.routes) {
-    lines.push(`rabbit_http_requests_total${prometheusLabels({ method: route.method, route: route.route })} ${route.count}`);
+    lines.push(
+      `rabbit_http_requests_total${prometheusLabels({ method: route.method, route: route.route })} ${route.count}`,
+    );
   }
 
-  lines.push('# HELP rabbit_http_errors_total Respostas 5xx por rota.');
-  lines.push('# TYPE rabbit_http_errors_total counter');
+  lines.push("# HELP rabbit_http_errors_total Respostas 5xx por rota.");
+  lines.push("# TYPE rabbit_http_errors_total counter");
   for (const route of snapshot.routes) {
-    lines.push(`rabbit_http_errors_total${prometheusLabels({ method: route.method, route: route.route })} ${route.errors}`);
+    lines.push(
+      `rabbit_http_errors_total${prometheusLabels({ method: route.method, route: route.route })} ${route.errors}`,
+    );
   }
 
-  lines.push('# HELP rabbit_http_request_duration_ms Latência por rota em milissegundos.');
-  lines.push('# TYPE rabbit_http_request_duration_ms gauge');
+  lines.push(
+    "# HELP rabbit_http_request_duration_ms Latência por rota em milissegundos.",
+  );
+  lines.push("# TYPE rabbit_http_request_duration_ms gauge");
   for (const route of snapshot.routes) {
-    lines.push(`rabbit_http_request_duration_ms${prometheusLabels({ method: route.method, route: route.route, quantile: 'avg' })} ${route.avgMs}`);
-    lines.push(`rabbit_http_request_duration_ms${prometheusLabels({ method: route.method, route: route.route, quantile: 'p95' })} ${route.p95Ms}`);
-    lines.push(`rabbit_http_request_duration_ms${prometheusLabels({ method: route.method, route: route.route, quantile: 'max' })} ${route.maxMs}`);
+    lines.push(
+      `rabbit_http_request_duration_ms${prometheusLabels({ method: route.method, route: route.route, quantile: "avg" })} ${route.avgMs}`,
+    );
+    lines.push(
+      `rabbit_http_request_duration_ms${prometheusLabels({ method: route.method, route: route.route, quantile: "p95" })} ${route.p95Ms}`,
+    );
+    lines.push(
+      `rabbit_http_request_duration_ms${prometheusLabels({ method: route.method, route: route.route, quantile: "max" })} ${route.maxMs}`,
+    );
   }
 
   const counters = (extra && extra.counters) || {};
   const counterMetrics = [
-    ['rabbit_commands_executed_total', 'Comandos slash executados.', counters.totalCommandsExecuted],
-    ['rabbit_infractions_created_total', 'Infrações registadas.', counters.totalInfractionsCreated],
-    ['rabbit_automod_actions_total', 'Ações de auto-moderação.', counters.autoModActions],
-    ['rabbit_antispam_actions_total', 'Ações de anti-spam.', counters.antiSpamActions]
+    [
+      "rabbit_commands_executed_total",
+      "Comandos slash executados.",
+      counters.totalCommandsExecuted,
+    ],
+    [
+      "rabbit_infractions_created_total",
+      "Infrações registadas.",
+      counters.totalInfractionsCreated,
+    ],
+    [
+      "rabbit_automod_actions_total",
+      "Ações de auto-moderação.",
+      counters.autoModActions,
+    ],
+    [
+      "rabbit_antispam_actions_total",
+      "Ações de anti-spam.",
+      counters.antiSpamActions,
+    ],
   ];
 
   for (const [name, help, value] of counterMetrics) {
@@ -196,7 +234,7 @@ function formatPrometheus(extra = {}) {
     lines.push(`${name} ${Number.isFinite(Number(value)) ? Number(value) : 0}`);
   }
 
-  return lines.join('\n') + '\n';
+  return lines.join("\n") + "\n";
 }
 
 module.exports = {
@@ -205,5 +243,5 @@ module.exports = {
   resetMetrics,
   normalizeRoutePath,
   formatPrometheus,
-  prometheusLabels
+  prometheusLabels,
 };

@@ -1,7 +1,7 @@
 // src/systems/warningsService.js
 
-const User = require('../database/models/User');
-const { getGuildTrustConfig } = require('../utils/trust');
+const User = require("../database/models/User");
+const { getGuildTrustConfig } = require("../utils/trust");
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -26,7 +26,7 @@ function recordTrustChange(u, reason, beforeTrust, now) {
     at: now instanceof Date ? now : new Date(),
     delta,
     trust: afterTrust,
-    reason: reason || null
+    reason: reason || null,
   });
   u.trustHistory = list.slice(-MAX_TRUST_HISTORY);
 }
@@ -43,7 +43,7 @@ async function getOrCreateUser(guildId, userId) {
       warnings: 0,
       trust: trustCfg.base,
       lastInfractionAt: null,
-      lastTrustUpdateAt: new Date()
+      lastTrustUpdateAt: new Date(),
     });
   }
 
@@ -56,7 +56,7 @@ async function getOrCreateUser(guildId, userId) {
   const before = u.trust;
   applyTrustRegen(u, trustCfg, now);
   if (u.trust !== before) {
-    recordTrustChange(u, 'regen', before, now);
+    recordTrustChange(u, "regen", before, now);
     await u.save().catch(() => null);
   }
 
@@ -66,11 +66,7 @@ async function getOrCreateUser(guildId, userId) {
 function applyTrustRegen(u, trustCfg, now) {
   if (!trustCfg.enabled) return;
 
-  const last =
-    u.lastInfractionAt ||
-    u.lastTrustUpdateAt ||
-    u.createdAt ||
-    now;
+  const last = u.lastInfractionAt || u.lastTrustUpdateAt || u.createdAt || now;
 
   const diffMs = now.getTime() - last.getTime();
   if (diffMs < DAY_MS) return;
@@ -83,11 +79,7 @@ function applyTrustRegen(u, trustCfg, now) {
   const bonus = days * trustCfg.regenPerDay;
   if (bonus <= 0) return;
 
-  u.trust = clampTrust(
-    u.trust + bonus,
-    trustCfg.min,
-    trustCfg.max
-  );
+  u.trust = clampTrust(u.trust + bonus, trustCfg.min, trustCfg.max);
 
   u.lastTrustUpdateAt = now;
 }
@@ -96,15 +88,11 @@ function applyTrustPenalty(u, trustCfg, type, now) {
   if (!trustCfg.enabled) return;
 
   let penalty = 0;
-  if (type === 'WARN') penalty = trustCfg.warnPenalty;
-  if (type === 'MUTE') penalty = trustCfg.mutePenalty;
+  if (type === "WARN") penalty = trustCfg.warnPenalty;
+  if (type === "MUTE") penalty = trustCfg.mutePenalty;
 
   if (penalty > 0) {
-    u.trust = clampTrust(
-      u.trust - penalty,
-      trustCfg.min,
-      trustCfg.max
-    );
+    u.trust = clampTrust(u.trust - penalty, trustCfg.min, trustCfg.max);
   }
 
   u.lastInfractionAt = now;
@@ -122,8 +110,8 @@ async function addWarning(guildId, userId, amount = 1) {
   const before = u.trust;
   u.warnings = (u.warnings || 0) + amount;
 
-  applyTrustPenalty(u, trustCfg, 'WARN', now);
-  recordTrustChange(u, 'warn', before, now);
+  applyTrustPenalty(u, trustCfg, "WARN", now);
+  recordTrustChange(u, "warn", before, now);
 
   await u.save();
   return u;
@@ -138,8 +126,8 @@ async function applyMutePenalty(guildId, userId) {
   applyTrustRegen(u, trustCfg, now);
 
   const before = u.trust;
-  applyTrustPenalty(u, trustCfg, 'MUTE', now);
-  recordTrustChange(u, 'mute', before, now);
+  applyTrustPenalty(u, trustCfg, "MUTE", now);
+  recordTrustChange(u, "mute", before, now);
 
   await u.save();
   return u;
@@ -151,16 +139,20 @@ async function resetUser(guildId, userId, baseTrust, reason) {
 
   u.warnings = 0;
 
-  const minTrust = typeof trustCfg.minTrust === 'number' ? trustCfg.minTrust : -100;
-  const maxTrust = typeof trustCfg.maxTrust === 'number' ? trustCfg.maxTrust : 100;
+  const minTrust =
+    typeof trustCfg.minTrust === "number" ? trustCfg.minTrust : -100;
+  const maxTrust =
+    typeof trustCfg.maxTrust === "number" ? trustCfg.maxTrust : 100;
   const nextTrust =
-    typeof baseTrust === 'number'
+    typeof baseTrust === "number"
       ? baseTrust
-      : (typeof trustCfg.base === 'number' ? trustCfg.base : 0);
+      : typeof trustCfg.base === "number"
+        ? trustCfg.base
+        : 0;
 
   const before = u.trust;
   u.trust = clampTrust(nextTrust, minTrust, maxTrust);
-  recordTrustChange(u, reason ? String(reason) : 'reset', before, new Date());
+  recordTrustChange(u, reason ? String(reason) : "reset", before, new Date());
 
   await u.save();
   return u;
@@ -179,33 +171,38 @@ async function removeInfractionEffects(guildId, userId, type) {
   const before = u.trust;
   let changed = false;
 
-  if (type === 'WARN') {
-    const currentWarnings = typeof u.warnings === 'number' ? u.warnings : 0;
+  if (type === "WARN") {
+    const currentWarnings = typeof u.warnings === "number" ? u.warnings : 0;
     u.warnings = currentWarnings > 0 ? currentWarnings - 1 : 0;
 
-    if (trustCfg.enabled && typeof trustCfg.warnPenalty === 'number') {
+    if (trustCfg.enabled && typeof trustCfg.warnPenalty === "number") {
       u.trust = clampTrust(
         u.trust + trustCfg.warnPenalty,
         trustCfg.min,
-        trustCfg.max
+        trustCfg.max,
       );
     }
     changed = true;
   }
 
-  if (type === 'MUTE') {
-    if (trustCfg.enabled && typeof trustCfg.mutePenalty === 'number') {
+  if (type === "MUTE") {
+    if (trustCfg.enabled && typeof trustCfg.mutePenalty === "number") {
       u.trust = clampTrust(
         u.trust + trustCfg.mutePenalty,
         trustCfg.min,
-        trustCfg.max
+        trustCfg.max,
       );
     }
     changed = true;
   }
 
   if (changed) {
-    recordTrustChange(u, type === 'WARN' ? 'unwarn' : 'unmute', before, new Date());
+    recordTrustChange(
+      u,
+      type === "WARN" ? "unwarn" : "unmute",
+      before,
+      new Date(),
+    );
   }
 
   await u.save();
@@ -230,7 +227,10 @@ const avgTrustCache = new Map(); // guildId -> { exp, avgTrust, sampleSize }
  * @param {{ ttlMs?: number }} [options]
  * @returns {Promise<{ avgTrust: number|null, sampleSize: number }>}
  */
-async function getGuildAverageTrust(guildId, { ttlMs = AVG_TRUST_CACHE_TTL_MS } = {}) {
+async function getGuildAverageTrust(
+  guildId,
+  { ttlMs = AVG_TRUST_CACHE_TTL_MS } = {},
+) {
   if (!guildId) return { avgTrust: null, sampleSize: 0 };
 
   const now = Date.now();
@@ -244,14 +244,20 @@ async function getGuildAverageTrust(guildId, { ttlMs = AVG_TRUST_CACHE_TTL_MS } 
   try {
     const rows = await User.aggregate([
       { $match: { guildId } },
-      { $group: { _id: null, avgTrust: { $avg: '$trust' }, sampleSize: { $sum: 1 } } }
+      {
+        $group: {
+          _id: null,
+          avgTrust: { $avg: "$trust" },
+          sampleSize: { $sum: 1 },
+        },
+      },
     ]);
 
     const row = Array.isArray(rows) ? rows[0] : null;
     if (row) {
       stats = {
         avgTrust: Number.isFinite(row.avgTrust) ? row.avgTrust : null,
-        sampleSize: Number(row.sampleSize) || 0
+        sampleSize: Number(row.sampleSize) || 0,
       };
     }
   } catch {
@@ -259,7 +265,11 @@ async function getGuildAverageTrust(guildId, { ttlMs = AVG_TRUST_CACHE_TTL_MS } 
     return stats;
   }
 
-  avgTrustCache.set(guildId, { exp: now + ttlMs, avgTrust: stats.avgTrust, sampleSize: stats.sampleSize });
+  avgTrustCache.set(guildId, {
+    exp: now + ttlMs,
+    avgTrust: stats.avgTrust,
+    sampleSize: stats.sampleSize,
+  });
   return stats;
 }
 
@@ -280,5 +290,5 @@ module.exports = {
   resetUser,
   removeInfractionEffects,
   getGuildAverageTrust,
-  clearAvgTrustCache
+  clearAvgTrustCache,
 };

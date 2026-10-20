@@ -1,7 +1,7 @@
 // src/utils/staff.js
 
-const { PermissionsBitField } = require('discord.js');
-const { getGuildConfig } = require('../systems/guildConfigService');
+const { PermissionsBitField } = require("discord.js");
+const { getGuildConfig } = require("../systems/guildConfigService");
 
 // Small TTL cache to avoid hitting Mongo on every permission check.
 // Key: `${guildId}` -> { exp:number, roles:string[] }
@@ -10,15 +10,21 @@ const CACHE_TTL_MS = 30_000;
 
 function selectStaffRoleIds(guildConfig, feature) {
   if (!guildConfig) return [];
-  const specific = feature && guildConfig.staffRolesByFeature && guildConfig.staffRolesByFeature[feature];
-  const selected = Array.isArray(specific) && specific.length
-    ? specific
-    : guildConfig.staffRoleIds;
-  return Array.isArray(selected) ? Array.from(new Set(selected.map(String))) : [];
+  const specific =
+    feature &&
+    guildConfig.staffRolesByFeature &&
+    guildConfig.staffRolesByFeature[feature];
+  const selected =
+    Array.isArray(specific) && specific.length
+      ? specific
+      : guildConfig.staffRoleIds;
+  return Array.isArray(selected)
+    ? Array.from(new Set(selected.map(String)))
+    : [];
 }
 
 function invalidateStaffRoleCache(guildId) {
-  const prefix = guildId ? `${String(guildId)}:` : '';
+  const prefix = guildId ? `${String(guildId)}:` : "";
   for (const key of _rolesCache.keys()) {
     if (!prefix || key.startsWith(prefix)) _rolesCache.delete(key);
   }
@@ -35,22 +41,22 @@ function invalidateStaffRoleCache(guildId) {
 async function getStaffRoleIdsForGuild(guildId, feature) {
   if (!guildId) return [];
 
-  const cacheKey = `${String(guildId)}:${String(feature || '*')}`;
+  const cacheKey = `${String(guildId)}:${String(feature || "*")}`;
   const cached = _rolesCache.get(cacheKey);
   if (cached && cached.exp > Date.now() && Array.isArray(cached.roles)) {
     return cached.roles;
   }
 
   try {
-		const guildCfg = await getGuildConfig(guildId);
+    const guildCfg = await getGuildConfig(guildId);
 
     const roles = selectStaffRoleIds(guildCfg, feature);
     if (roles.length) {
-			_rolesCache.set(cacheKey, { exp: Date.now() + CACHE_TTL_MS, roles });
-			return roles;
-		}
+      _rolesCache.set(cacheKey, { exp: Date.now() + CACHE_TTL_MS, roles });
+      return roles;
+    }
   } catch (err) {
-    console.error('[Staff] Failed to read GuildConfig for staff roles:', err);
+    console.error("[Staff] Failed to read GuildConfig for staff roles:", err);
   }
 
   // Cache empty results briefly to avoid repeated DB hits when no staff is configured.
@@ -67,7 +73,9 @@ async function getStaffRoleIdsForGuild(guildId, feature) {
 async function isStaff(member, feature) {
   if (!member) return false;
 
-  const isAdmin = member.permissions?.has(PermissionsBitField.Flags.Administrator);
+  const isAdmin = member.permissions?.has(
+    PermissionsBitField.Flags.Administrator,
+  );
   if (isAdmin) return true;
 
   const guild = member.guild;
@@ -102,5 +110,5 @@ module.exports = {
   isHighStaff,
   getStaffRoleIdsForGuild,
   invalidateStaffRoleCache,
-  selectStaffRoleIds
+  selectStaffRoleIds,
 };

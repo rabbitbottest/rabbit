@@ -7,10 +7,10 @@
 //   Se alguém voltar a entrar antes do tempo, cancela a eliminação.
 //
 
-const { ChannelType, PermissionFlagsBits } = require('discord.js');
-const GuildConfig = require('../database/models/GuildConfig');
-const TempVoiceChannel = require('../database/models/TempVoiceChannel');
-const { fetchMember } = require('../services/discordFetchCache');
+const { ChannelType, PermissionFlagsBits } = require("discord.js");
+const GuildConfig = require("../database/models/GuildConfig");
+const TempVoiceChannel = require("../database/models/TempVoiceChannel");
+const { fetchMember } = require("../services/discordFetchCache");
 
 const pendingDeletes = new Map(); // key: channelId, value: timeoutId
 const creationLocks = new Set(); // userIds currently creating a temp voice channel
@@ -43,7 +43,10 @@ async function handleJoin(client, newState, cfg) {
     if (!baseIds.includes(baseId)) return;
 
     // Verifica se já existe canal temporário para este utilizador nesta guild
-    const existing = await TempVoiceChannel.findOne({ guildId: guild.id, ownerId: user.id }).lean();
+    const existing = await TempVoiceChannel.findOne({
+      guildId: guild.id,
+      ownerId: user.id,
+    }).lean();
     if (existing) {
       // Se o canal ainda existir, move o user para lá
       const ch = guild.channels.cache.get(existing.channelId);
@@ -54,7 +57,8 @@ async function handleJoin(client, newState, cfg) {
     }
 
     // Limite máximo de utilizadores por sala (se definido)
-    const maxUsersPerRoom = typeof cfg.maxUsersPerRoom === 'number' ? cfg.maxUsersPerRoom : null;
+    const maxUsersPerRoom =
+      typeof cfg.maxUsersPerRoom === "number" ? cfg.maxUsersPerRoom : null;
 
     // Definir categoria onde criar
     let parentId = cfg.categoryId || null;
@@ -66,16 +70,18 @@ async function handleJoin(client, newState, cfg) {
     }
 
     // Nome do canal temporário
-    const baseName = 'channel';
+    const baseName = "channel";
     let seq = 1;
     try {
       const existingChannels = guild.channels.cache.filter(
-        (c) => c.type === ChannelType.GuildVoice && c.name.startsWith(baseName + '-')
+        (c) =>
+          c.type === ChannelType.GuildVoice &&
+          c.name.startsWith(baseName + "-"),
       );
       if (existingChannels.size > 0) {
         const nums = [];
         for (const ch of existingChannels.values()) {
-          const parts = ch.name.split('-');
+          const parts = ch.name.split("-");
           if (parts.length >= 2) {
             const maybeNum = parseInt(parts[1], 10);
             if (Number.isFinite(maybeNum)) nums.push(maybeNum);
@@ -96,22 +102,28 @@ async function handleJoin(client, newState, cfg) {
       {
         id: guild.roles.everyone.id,
         allow: [],
-        deny: []
+        deny: [],
       },
       {
         id: user.id,
-        allow: [PermissionFlagsBits.Connect, PermissionFlagsBits.ManageChannels, PermissionFlagsBits.MoveMembers],
-        deny: []
-      }
+        allow: [
+          PermissionFlagsBits.Connect,
+          PermissionFlagsBits.ManageChannels,
+          PermissionFlagsBits.MoveMembers,
+        ],
+        deny: [],
+      },
     ];
 
-    const created = await guild.channels.create({
-      name: channelName,
-      type: ChannelType.GuildVoice,
-      parent: parentId || undefined,
-      userLimit: maxUsersPerRoom || undefined,
-      permissionOverwrites
-    }).catch(() => null);
+    const created = await guild.channels
+      .create({
+        name: channelName,
+        type: ChannelType.GuildVoice,
+        parent: parentId || undefined,
+        userLimit: maxUsersPerRoom || undefined,
+        permissionOverwrites,
+      })
+      .catch(() => null);
 
     if (!created) return;
 
@@ -120,7 +132,7 @@ async function handleJoin(client, newState, cfg) {
       guildId: guild.id,
       channelId: created.id,
       ownerId: user.id,
-      baseChannelId: baseId
+      baseChannelId: baseId,
     }).catch(() => {});
 
     // Mover user
@@ -132,9 +144,9 @@ async function handleJoin(client, newState, cfg) {
       clearTimeout(timeoutId);
       pendingDeletes.delete(created.id);
     }
-    } finally {
-      creationLocks.delete(userId);
-    }
+  } finally {
+    creationLocks.delete(userId);
+  }
 }
 
 async function scheduleDeleteChannel(channel, delaySeconds) {
@@ -151,8 +163,13 @@ async function scheduleDeleteChannel(channel, delaySeconds) {
       if (channel.deleted) return;
       if (channel.members && channel.members.size > 0) return;
 
-      await TempVoiceChannel.deleteOne({ guildId: channel.guild.id, channelId: channel.id }).catch(() => {});
-      await channel.delete('Temporary voice channel empty (auto-clean)').catch(() => {});
+      await TempVoiceChannel.deleteOne({
+        guildId: channel.guild.id,
+        channelId: channel.id,
+      }).catch(() => {});
+      await channel
+        .delete("Temporary voice channel empty (auto-clean)")
+        .catch(() => {});
     } finally {
       pendingDeletes.delete(channel.id);
     }
@@ -172,7 +189,10 @@ async function handleLeave(oldState, cfg) {
   if (!ch || ch.type !== ChannelType.GuildVoice) return;
 
   // Verifica se este canal é um temp voice registado
-  const doc = await TempVoiceChannel.findOne({ guildId: guild.id, channelId }).lean();
+  const doc = await TempVoiceChannel.findOne({
+    guildId: guild.id,
+    channelId,
+  }).lean();
   if (!doc) return;
 
   // Se ainda houver membros, não apaga
@@ -183,7 +203,7 @@ async function handleLeave(oldState, cfg) {
 }
 
 module.exports = (client) => {
-  client.on('voiceStateUpdate', async (oldState, newState) => {
+  client.on("voiceStateUpdate", async (oldState, newState) => {
     try {
       // Ignora DMs / sem guild
       if (!newState.guild && !oldState.guild) return;
@@ -202,7 +222,11 @@ module.exports = (client) => {
       }
 
       // User mudou de canal
-      if (oldState.channelId && newState.channelId && oldState.channelId !== newState.channelId) {
+      if (
+        oldState.channelId &&
+        newState.channelId &&
+        oldState.channelId !== newState.channelId
+      ) {
         // Se entrou num canal base, trata como join
         await handleJoin(client, newState, tv);
         // E também verifica se deixou um temp voice que ficou vazio
@@ -216,7 +240,7 @@ module.exports = (client) => {
         return;
       }
     } catch (err) {
-      console.error('[TempVoice] voiceStateUpdate error:', err);
+      console.error("[TempVoice] voiceStateUpdate error:", err);
     }
   });
 };

@@ -3,7 +3,7 @@
 // Helpers for safely replying to interactions (handles deferred/replied)
 // and for consistent ephemeral replies.
 
-const { MessageFlags } = require('discord.js');
+const { MessageFlags } = require("discord.js");
 
 /**
  * Safely reply or follow up to an interaction.
@@ -46,10 +46,7 @@ function safeReply(interaction, payload = {}, options = {}) {
  * Convenience helper for common "ephemeral only" replies
  */
 function replyEphemeral(interaction, content) {
-  const payload =
-    typeof content === 'string'
-      ? { content }
-      : content || {};
+  const payload = typeof content === "string" ? { content } : content || {};
   return safeReply(interaction, payload, { ephemeral: true });
 }
 

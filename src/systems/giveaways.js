@@ -1,11 +1,11 @@
 // src/systems/giveaways.js
 
-const { EmbedBuilder, PermissionsBitField } = require('discord.js');
-const GuildConfig = require('../database/models/GuildConfig');
-const GiveawayPost = require('../database/models/GiveawayPost');
-const { fetchChannel } = require('../services/discordFetchCache');
+const { EmbedBuilder, PermissionsBitField } = require("discord.js");
+const GuildConfig = require("../database/models/GuildConfig");
+const GiveawayPost = require("../database/models/GiveawayPost");
+const { fetchChannel } = require("../services/discordFetchCache");
 
-const GAMERPOWER_BASE = 'https://www.gamerpower.com/api';
+const GAMERPOWER_BASE = "https://www.gamerpower.com/api";
 const FETCH_TIMEOUT_MS = 15_000;
 const SCHEDULER_MS = 10_000;
 const MIN_POLL_SECONDS = 60;
@@ -13,7 +13,7 @@ const MAX_POLL_SECONDS = 3600;
 const HARD_CAP_PER_CYCLE = 50;
 const DEFAULT_429_MS = 5 * 60 * 1000;
 
-const ALLOWED_PLATFORMS = new Set(['steam', 'epic-games-store', 'ubisoft']);
+const ALLOWED_PLATFORMS = new Set(["steam", "epic-games-store", "ubisoft"]);
 
 const runningGuilds = new Set();
 const statusByGuild = new Map();
@@ -26,34 +26,43 @@ let scheduler = null;
 // "(Steam) Key Giveaway", "Steam Key Giveaway" ou "(Beta) Steam Key Giveaway".
 // O embed deve mostrar apenas o nome do jogo, por isso removemos esses sufixos
 // (e prefixos de plataforma) de forma iterativa até o título estabilizar.
-const TITLE_SUFFIX_PAREN_RE = /[\s\-–—:|]*[\[\(]\s*(steam(\s*key)?|epic\s*games?|ubisoft|uplay|dlc|beta|early\s*access|playtest|key|giveaway)\s*[\]\)]\s*$/i;
-const TITLE_SUFFIX_WORD_RE = /[\s\-–—:|]*\b(steam(\s*key)?|epic\s*games?|ubisoft|uplay|key|giveaway)\s*$/i;
-const TITLE_PREFIX_RE = /^\s*[\[\(]?\s*(steam(\s*key)?|epic\s*games?|ubisoft|uplay)\s*[\]\)]?\s*[:\-–—|]*\s*/i;
+const TITLE_SUFFIX_PAREN_RE =
+  /[\s\-–—:|]*(?:\[|\()\s*(steam(\s*key)?|epic\s*games?|ubisoft|uplay|dlc|beta|early\s*access|playtest|key|giveaway)\s*(?:\]|\))\s*$/i;
+const TITLE_SUFFIX_WORD_RE =
+  /[\s\-–—:|]*\b(steam(\s*key)?|epic\s*games?|ubisoft|uplay|key|giveaway)\s*$/i;
+const TITLE_PREFIX_RE =
+  /^\s*(?:\[|\()?\s*(steam(\s*key)?|epic\s*games?|ubisoft|uplay)\s*(?:\]|\))?\s*[:\-–—|]*\s*/i;
 
 function cleanTitle(title) {
-  if (!title) return 'Giveaway';
+  if (!title) return "Giveaway";
 
   let s = String(title).trim();
   let prev;
   do {
     prev = s;
-    s = s.replace(TITLE_SUFFIX_PAREN_RE, '').replace(TITLE_SUFFIX_WORD_RE, '').trim();
+    s = s
+      .replace(TITLE_SUFFIX_PAREN_RE, "")
+      .replace(TITLE_SUFFIX_WORD_RE, "")
+      .trim();
   } while (s && s !== prev);
 
-  s = s.replace(TITLE_PREFIX_RE, '').trim();
-  s = s.replace(/^[\s\-–—:|]+|[\s\-–—:|]+$/g, '').replace(/\s+/g, ' ').trim();
+  s = s.replace(TITLE_PREFIX_RE, "").trim();
+  s = s
+    .replace(/^[\s\-–—:|]+|[\s\-–—:|]+$/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
 
-  return s || 'Giveaway';
+  return s || "Giveaway";
 }
 
 function formatDate(value) {
-  if (!value || value === 'N/A') return '—';
+  if (!value || value === "N/A") return "—";
 
   const d = new Date(value);
   if (isNaN(d.getTime())) return value;
 
-  const day = String(d.getDate()).padStart(2, '0');
-  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, "0");
+  const month = String(d.getMonth() + 1).padStart(2, "0");
   const year = d.getFullYear();
 
   return `${day}/${month}/${year}`;
@@ -73,48 +82,51 @@ function toIso(msOrDate) {
 }
 
 function normalizeImageUrl(url) {
-  const u = String(url || '').trim();
-  if (!u || u === 'N/A') return '';
-  return u.startsWith('http://') ? ('https://' + u.slice('http://'.length)) : u;
+  const u = String(url || "").trim();
+  if (!u || u === "N/A") return "";
+  return u.startsWith("http://") ? "https://" + u.slice("http://".length) : u;
 }
 
 function platformApiParam(plat) {
-  const p = String(plat || '').toLowerCase().trim();
+  const p = String(plat || "")
+    .toLowerCase()
+    .trim();
   if (!p) return null;
-  if (p.includes('steam')) return 'steam';
-  if (p.includes('epic')) return 'epic-games-store';
-  if (p.includes('ubisoft') || p.includes('uplay')) return 'ubisoft';
+  if (p.includes("steam")) return "steam";
+  if (p.includes("epic")) return "epic-games-store";
+  if (p.includes("ubisoft") || p.includes("uplay")) return "ubisoft";
   return ALLOWED_PLATFORMS.has(p) ? p : null;
 }
 
 function resolvePlatform(it, fallback) {
-  const p = String(it.platforms || '').toLowerCase();
+  const p = String(it.platforms || "").toLowerCase();
 
-  if (p.includes('steam')) return 'steam';
-  if (p.includes('epic')) return 'epic';
-  if (p.includes('ubisoft') || p.includes('uplay')) return 'ubisoft';
+  if (p.includes("steam")) return "steam";
+  if (p.includes("epic")) return "epic";
+  if (p.includes("ubisoft") || p.includes("uplay")) return "ubisoft";
 
   const fb = platformApiParam(fallback);
-  if (fb === 'epic-games-store') return 'epic';
+  if (fb === "epic-games-store") return "epic";
   return fb || fallback;
 }
 
 function badgeUrl(platform, base, id) {
-  if (!base) return '';
-  const root = String(base).replace(/\/+$/g, '');
+  if (!base) return "";
+  const root = String(base).replace(/\/+$/g, "");
 
-  if (platform === 'steam') return `${root}/platform-badge/steam.png?v=${id}`;
-  if (platform === 'epic') return `${root}/platform-badge/epic.png?v=${id}`;
-  if (platform === 'ubisoft') return `${root}/platform-badge/ubisoft.png?v=${id}`;
+  if (platform === "steam") return `${root}/platform-badge/steam.png?v=${id}`;
+  if (platform === "epic") return `${root}/platform-badge/epic.png?v=${id}`;
+  if (platform === "ubisoft")
+    return `${root}/platform-badge/ubisoft.png?v=${id}`;
 
-  return '';
+  return "";
 }
 
 function buildLinks(g, platform) {
-  const browser = g.giveaway_url || g.gamerpower_url || '';
-  const client = g.open_giveaway_url || '';
+  const browser = g.giveaway_url || g.gamerpower_url || "";
+  const client = g.open_giveaway_url || "";
 
-  const SEP = '   ';
+  const SEP = "   ";
   const links = [];
 
   if (browser) {
@@ -122,11 +134,11 @@ function buildLinks(g, platform) {
   }
 
   if (client) {
-    if (platform === 'steam') {
+    if (platform === "steam") {
       links.push(`**[Open in Steam Client ↗](${client})**`);
-    } else if (platform === 'epic') {
+    } else if (platform === "epic") {
       links.push(`**[Open in Epic Games ↗](${client})**`);
-    } else if (platform === 'ubisoft') {
+    } else if (platform === "ubisoft") {
       links.push(`**[Open in Ubisoft Games ↗](${client})**`);
     }
   }
@@ -137,20 +149,20 @@ function buildLinks(g, platform) {
 function makeEmbed(g, platform, baseUrl) {
   const title = cleanTitle(g.title);
 
-  const worth = g.worth && g.worth !== 'N/A' ? `~~${g.worth}~~` : '';
+  const worth = g.worth && g.worth !== "N/A" ? `~~${g.worth}~~` : "";
   const endUnix = parseUnix(g.end_date);
   const endDate = formatDate(g.end_date);
 
   const freeLine = `**Free** until ${endUnix ? `<t:${endUnix}:d>` : endDate}`;
   const links = buildLinks(g, platform);
 
-  const description = [worth, freeLine].filter(Boolean).join(' ') +
-    (links ? `\n\n${links}` : '');
+  const description =
+    [worth, freeLine].filter(Boolean).join(" ") + (links ? `\n\n${links}` : "");
 
   const embed = new EmbedBuilder()
     .setTitle(title)
     .setDescription(description)
-    .setFooter({ text: 'via .rabbitstuff.xyz' });
+    .setFooter({ text: "via .rabbitstuff.xyz" });
 
   const image = normalizeImageUrl(g.image);
   if (image) embed.setImage(image);
@@ -172,7 +184,7 @@ function sortNewestFirst(items) {
 }
 
 function parseRetryAfterMs(res) {
-  const raw = res.headers?.get?.('retry-after');
+  const raw = res.headers?.get?.("retry-after");
   if (!raw) return DEFAULT_429_MS;
   const seconds = Number(raw);
   if (Number.isFinite(seconds) && seconds >= 0) {
@@ -207,7 +219,7 @@ function ensureStatus(guildId, patch = {}) {
     lastPollAt: null,
     nextPollAt: null,
     lastSentAt: null,
-    lastError: null
+    lastError: null,
   };
   const next = { ...prev, ...patch };
   statusByGuild.set(id, next);
@@ -220,7 +232,11 @@ function getStatus(guildId) {
 }
 
 function uniqueItemKey(it) {
-  const url = it.open_giveaway_url || it.giveaway_url || it.gamerpower_url || it.open_giveaway;
+  const url =
+    it.open_giveaway_url ||
+    it.giveaway_url ||
+    it.gamerpower_url ||
+    it.open_giveaway;
   if (url && String(url).trim()) return String(url).trim();
   if (it?.id != null) return `id:${it.id}`;
   return null;
@@ -236,12 +252,13 @@ async function fetchGiveaways(platform) {
   try {
     const url = `${GAMERPOWER_BASE}/giveaways?platform=${encodeURIComponent(plat)}&type=game`;
     const res = await fetch(url, {
-      method: 'GET',
+      method: "GET",
       headers: {
-        Accept: 'application/json',
-        'User-Agent': 'Mozilla/5.0 (compatible; .rabbit/1.0; +https://github.com/maze92/rabbit-bot)'
+        Accept: "application/json",
+        "User-Agent":
+          "Mozilla/5.0 (compatible; .rabbit/1.0; +https://github.com/maze92/rabbit-bot)",
       },
-      signal: controller.signal
+      signal: controller.signal,
     });
 
     if (res.status === 429) {
@@ -264,8 +281,14 @@ async function fetchGiveaways(platform) {
     return data;
   } catch (err) {
     if (err && err.statusCode) throw err;
-    if (err && (err.name === 'AbortError' || err.message === 'This operation was aborted')) {
-      const timeoutErr = new Error(`GamerPower timeout (${FETCH_TIMEOUT_MS}ms) for ${plat}`);
+    if (
+      err &&
+      (err.name === "AbortError" ||
+        err.message === "This operation was aborted")
+    ) {
+      const timeoutErr = new Error(
+        `GamerPower timeout (${FETCH_TIMEOUT_MS}ms) for ${plat}`,
+      );
       throw timeoutErr;
     }
     throw err;
@@ -275,12 +298,19 @@ async function fetchGiveaways(platform) {
 }
 
 function canPostToChannel(channel, client) {
-  if (!channel || typeof channel.isTextBased !== 'function' || !channel.isTextBased()) return false;
+  if (
+    !channel ||
+    typeof channel.isTextBased !== "function" ||
+    !channel.isTextBased()
+  )
+    return false;
   try {
     const perms = channel.permissionsFor?.(client.user);
     if (!perms) return false;
-    return perms.has(PermissionsBitField.Flags.SendMessages)
-      && perms.has(PermissionsBitField.Flags.EmbedLinks);
+    return (
+      perms.has(PermissionsBitField.Flags.SendMessages) &&
+      perms.has(PermissionsBitField.Flags.EmbedLinks)
+    );
   } catch {
     return false;
   }
@@ -288,7 +318,7 @@ function canPostToChannel(channel, client) {
 
 async function postGiveaway(client, channel, g, platform, baseUrl) {
   if (!canPostToChannel(channel, client)) {
-    return { ok: false, reason: 'missing_permissions' };
+    return { ok: false, reason: "missing_permissions" };
   }
 
   try {
@@ -296,8 +326,8 @@ async function postGiveaway(client, channel, g, platform, baseUrl) {
     await channel.send({ embeds: [embed] });
     return { ok: true };
   } catch (err) {
-    console.error('[Giveaways] Failed to send embed:', err?.message || err);
-    return { ok: false, reason: err?.message || 'send_failed' };
+    console.error("[Giveaways] Failed to send embed:", err?.message || err);
+    return { ok: false, reason: err?.message || "send_failed" };
   }
 }
 
@@ -305,7 +335,8 @@ async function processGuild(client, cfg, { force = false } = {}) {
   const guildId = String(cfg.guildId);
   const gcfg = cfg.giveaways || {};
 
-  if (runningGuilds.has(guildId)) return { skipped: true, reason: 'already_running' };
+  if (runningGuilds.has(guildId))
+    return { skipped: true, reason: "already_running" };
   runningGuilds.add(guildId);
 
   const now = Date.now();
@@ -317,42 +348,45 @@ async function processGuild(client, cfg, { force = false } = {}) {
     channelId,
     lastPollAt: toIso(now),
     nextPollAt: toIso(now + pollMs),
-    lastError: null
+    lastError: null,
   });
 
   try {
     if (gcfg.enabled !== true) {
       ensureStatus(guildId, { enabled: false, lastError: null });
-      return { skipped: true, reason: 'disabled' };
+      return { skipped: true, reason: "disabled" };
     }
 
     const retryUntil = retryUntilByGuild.get(guildId) || 0;
     if (!force && retryUntil > now) {
       ensureStatus(guildId, {
-        lastError: 'À espera do Retry-After da GamerPower',
-        nextPollAt: toIso(retryUntil)
+        lastError: "À espera do Retry-After da GamerPower",
+        nextPollAt: toIso(retryUntil),
       });
-      return { skipped: true, reason: 'backoff' };
+      return { skipped: true, reason: "backoff" };
     }
 
     if (!channelId) {
-      const msg = 'Canal de publicação não configurado';
+      const msg = "Canal de publicação não configurado";
       console.warn(`[Giveaways] ${msg} (guild ${guildId})`);
       ensureStatus(guildId, { lastError: msg });
-      return { skipped: true, reason: 'no_channel' };
+      return { skipped: true, reason: "no_channel" };
     }
 
     const channel = await fetchChannel(client, channelId).catch(() => null);
     if (!canPostToChannel(channel, client)) {
-      const msg = 'Canal em falta ou sem permissão SendMessages/EmbedLinks';
-      console.warn(`[Giveaways] ${msg} (guild ${guildId}, channel ${channelId})`);
+      const msg = "Canal em falta ou sem permissão SendMessages/EmbedLinks";
+      console.warn(
+        `[Giveaways] ${msg} (guild ${guildId}, channel ${channelId})`,
+      );
       ensureStatus(guildId, { lastError: msg });
-      return { skipped: true, reason: 'bad_channel' };
+      return { skipped: true, reason: "bad_channel" };
     }
 
-    const platforms = Array.isArray(gcfg.platforms) && gcfg.platforms.length
-      ? gcfg.platforms
-      : ['steam'];
+    const platforms =
+      Array.isArray(gcfg.platforms) && gcfg.platforms.length
+        ? gcfg.platforms
+        : ["steam"];
     const maxPerCycle = effectiveMaxPerCycle(gcfg);
 
     const sentThisCycle = new Set();
@@ -375,16 +409,22 @@ async function processGuild(client, cfg, { force = false } = {}) {
         if (sentThisCycle.has(uniqueKey)) continue;
 
         const or = [{ giveawayId: it.id }];
-        if (!uniqueKey.startsWith('id:')) or.push({ url: uniqueKey });
+        if (!uniqueKey.startsWith("id:")) or.push({ url: uniqueKey });
 
         const exists = await GiveawayPost.findOne({ guildId, $or: or }).lean();
         if (exists) continue;
 
         const platform = resolvePlatform(it, apiPlat);
-        const posted = await postGiveaway(client, channel, it, platform, gcfg.publicBaseUrl);
+        const posted = await postGiveaway(
+          client,
+          channel,
+          it,
+          platform,
+          gcfg.publicBaseUrl,
+        );
 
         if (!posted.ok) {
-          ensureStatus(guildId, { lastError: posted.reason || 'send_failed' });
+          ensureStatus(guildId, { lastError: posted.reason || "send_failed" });
           // Do not persist — retry next cycle.
           continue;
         }
@@ -393,16 +433,19 @@ async function processGuild(client, cfg, { force = false } = {}) {
           await GiveawayPost.create({
             guildId,
             giveawayId: it.id,
-            url: uniqueKey.startsWith('id:') ? null : uniqueKey,
+            url: uniqueKey.startsWith("id:") ? null : uniqueKey,
             platform,
-            type: 'game',
+            type: "game",
             title: it.title || null,
-            postedAt: new Date()
+            postedAt: new Date(),
           });
         } catch (createErr) {
           // Duplicate index: already recorded by a parallel run. Safe to ignore.
           if (createErr?.code !== 11000) {
-            console.error('[Giveaways] Failed to persist GiveawayPost:', createErr?.message || createErr);
+            console.error(
+              "[Giveaways] Failed to persist GiveawayPost:",
+              createErr?.message || createErr,
+            );
           }
         }
 
@@ -410,7 +453,7 @@ async function processGuild(client, cfg, { force = false } = {}) {
         sentCount++;
         ensureStatus(guildId, {
           lastSentAt: toIso(Date.now()),
-          lastError: null
+          lastError: null,
         });
       }
     }
@@ -419,17 +462,28 @@ async function processGuild(client, cfg, { force = false } = {}) {
     return { ok: true, sent: sentCount };
   } catch (err) {
     const retryAfterMs = Number(err?.retryAfterMs);
-    if (err?.statusCode === 429 && Number.isFinite(retryAfterMs) && retryAfterMs > 0) {
+    if (
+      err?.statusCode === 429 &&
+      Number.isFinite(retryAfterMs) &&
+      retryAfterMs > 0
+    ) {
       const until = Date.now() + retryAfterMs;
       retryUntilByGuild.set(guildId, until);
       ensureStatus(guildId, {
-        lastError: err.message || 'GamerPower 429',
-        nextPollAt: toIso(until)
+        lastError: err.message || "GamerPower 429",
+        nextPollAt: toIso(until),
       });
-      console.warn(`[Giveaways] Rate limited for guild ${guildId}, retry at ${toIso(until)}`);
+      console.warn(
+        `[Giveaways] Rate limited for guild ${guildId}, retry at ${toIso(until)}`,
+      );
     } else {
-      console.error(`[Giveaways] Error processing guild ${guildId}:`, err?.message || err);
-      ensureStatus(guildId, { lastError: String(err?.message || err).slice(0, 180) });
+      console.error(
+        `[Giveaways] Error processing guild ${guildId}:`,
+        err?.message || err,
+      );
+      ensureStatus(guildId, {
+        lastError: String(err?.message || err).slice(0, 180),
+      });
     }
     return { ok: false, error: err?.message || String(err) };
   } finally {
@@ -438,11 +492,11 @@ async function processGuild(client, cfg, { force = false } = {}) {
 }
 
 async function triggerGuild(client, guildId) {
-  const id = String(guildId || '').trim();
-  if (!id) throw new Error('guildId is required');
+  const id = String(guildId || "").trim();
+  if (!id) throw new Error("guildId is required");
 
   const cfg = await GuildConfig.findOne({ guildId: id }).lean();
-  if (!cfg) throw new Error('Guild config not found');
+  if (!cfg) throw new Error("Guild config not found");
 
   return processGuild(client, cfg, { force: true });
 }
@@ -450,9 +504,12 @@ async function triggerGuild(client, guildId) {
 async function tick(client) {
   let configs = [];
   try {
-    configs = await GuildConfig.find({ 'giveaways.enabled': true }).lean();
+    configs = await GuildConfig.find({ "giveaways.enabled": true }).lean();
   } catch (err) {
-    console.error('[Giveaways] Failed loading GuildConfig:', err?.message || err);
+    console.error(
+      "[Giveaways] Failed loading GuildConfig:",
+      err?.message || err,
+    );
     return;
   }
 
@@ -467,7 +524,7 @@ async function tick(client) {
     const gcfg = cfg.giveaways || {};
     const st = ensureStatus(guildId, {
       enabled: true,
-      channelId: gcfg.channelId || null
+      channelId: gcfg.channelId || null,
     });
 
     const nextAt = st.nextPollAt ? Date.parse(st.nextPollAt) : 0;
@@ -492,7 +549,7 @@ async function startGiveaways(client) {
   const api = {
     triggerGuild: (guildId) => triggerGuild(client, guildId),
     getStatus,
-    client
+    client,
   };
 
   module.exports._instance = api;
@@ -501,7 +558,9 @@ async function startGiveaways(client) {
 
   // Seed status so the dashboard is not blank before the first tick.
   try {
-    const configs = await GuildConfig.find({ 'giveaways.enabled': true }).lean();
+    const configs = await GuildConfig.find({
+      "giveaways.enabled": true,
+    }).lean();
     const soon = Date.now() + 1500;
     for (const cfg of configs) {
       if (!cfg?.guildId) continue;
@@ -509,16 +568,16 @@ async function startGiveaways(client) {
         enabled: true,
         channelId: cfg.giveaways?.channelId || null,
         nextPollAt: toIso(soon),
-        lastError: null
+        lastError: null,
       });
     }
   } catch (err) {
-    console.warn('[Giveaways] Failed to seed status:', err?.message || err);
+    console.warn("[Giveaways] Failed to seed status:", err?.message || err);
   }
 
   const run = () => {
     tick(client).catch((err) => {
-      console.error('[Giveaways] Scheduler tick failed:', err?.message || err);
+      console.error("[Giveaways] Scheduler tick failed:", err?.message || err);
     });
   };
 
@@ -526,7 +585,7 @@ async function startGiveaways(client) {
   scheduler = setInterval(run, SCHEDULER_MS);
   scheduler.unref?.();
 
-  console.log('[Giveaways] Free-To-Keep scheduler started');
+  console.log("[Giveaways] Free-To-Keep scheduler started");
   return api;
 }
 
@@ -534,5 +593,5 @@ module.exports = startGiveaways;
 module.exports.getStatus = getStatus;
 module.exports.cleanTitle = cleanTitle;
 module.exports.triggerGuild = async function triggerGuildNotReady() {
-  throw new Error('Giveaways system not started');
+  throw new Error("Giveaways system not started");
 };

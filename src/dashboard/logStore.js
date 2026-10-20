@@ -14,7 +14,7 @@ function createLogStore({ config, getModel }) {
   let cache = [];
 
   function currentModel() {
-    return typeof getModel === 'function' ? getModel() : null;
+    return typeof getModel === "function" ? getModel() : null;
   }
 
   async function saveToMongo(data) {
@@ -23,12 +23,12 @@ function createLogStore({ config, getModel }) {
 
     try {
       const doc = await DashboardLog.create({
-        title: data.title || 'Log',
+        title: data.title || "Log",
         user: data.user || null,
         executor: data.executor || null,
-        description: data.description || '',
+        description: data.description || "",
         guild: data.guild || null,
-        time: data.time || new Date().toISOString()
+        time: data.time || new Date().toISOString(),
       });
 
       const maxDb = config.dashboard?.maxDbLogs ?? 1000;
@@ -36,22 +36,26 @@ function createLogStore({ config, getModel }) {
         const count = await DashboardLog.estimatedDocumentCount();
         if (count > maxDb) {
           const toDelete = count - maxDb;
-          const oldest = await DashboardLog
-            .find({})
+          const oldest = await DashboardLog.find({})
             .sort({ createdAt: 1 })
             .limit(toDelete)
-            .select('_id')
+            .select("_id")
             .lean();
 
           if (oldest.length) {
-            await DashboardLog.deleteMany({ _id: { $in: oldest.map(o => o._id) } });
+            await DashboardLog.deleteMany({
+              _id: { $in: oldest.map((o) => o._id) },
+            });
           }
         }
       }
 
       return doc;
     } catch (err) {
-      console.error('[Dashboard] Failed saving log to Mongo:', err?.message || err);
+      console.error(
+        "[Dashboard] Failed saving log to Mongo:",
+        err?.message || err,
+      );
       return null;
     }
   }
@@ -73,12 +77,16 @@ function createLogStore({ config, getModel }) {
         executor: x.executor,
         description: x.description,
         guild: x.guild,
-        time: x.time || (x.createdAt ? new Date(x.createdAt).toISOString() : new Date().toISOString())
+        time:
+          x.time ||
+          (x.createdAt
+            ? new Date(x.createdAt).toISOString()
+            : new Date().toISOString()),
       }));
 
       console.log(`[Dashboard] Loaded ${cache.length} logs into memory cache`);
     } catch (err) {
-      console.error('[Dashboard] Failed loading initial cache:', err);
+      console.error("[Dashboard] Failed loading initial cache:", err);
     }
   }
 
@@ -93,10 +101,12 @@ function createLogStore({ config, getModel }) {
 
   return {
     get: () => cache,
-    set: (next) => { cache = next; },
+    set: (next) => {
+      cache = next;
+    },
     push,
     saveToMongo,
-    loadInitial
+    loadInitial,
   };
 }
 

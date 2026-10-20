@@ -25,7 +25,7 @@ let _gcStarted = false;
 function sweepExpired() {
   const t = now();
   for (const [k, entry] of cache.entries()) {
-    if (!entry || typeof entry.expiresAt !== 'number' || entry.expiresAt <= t) {
+    if (!entry || typeof entry.expiresAt !== "number" || entry.expiresAt <= t) {
       cache.delete(k);
     }
   }
@@ -46,9 +46,8 @@ function startGcOnce() {
   if (_gcStarted) return;
   _gcStarted = true;
   const timer = setInterval(sweepExpired, GC_INTERVAL_MS);
-  if (typeof timer.unref === 'function') timer.unref();
+  if (typeof timer.unref === "function") timer.unref();
 }
-
 
 function now() {
   return Date.now();

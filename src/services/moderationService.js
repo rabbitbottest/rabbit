@@ -5,13 +5,13 @@
 // foi movido para a camada de serviços para não misturar regras de negócio com
 // o registo de rotas.
 
-const warningsService = require('../systems/warningsService');
-const infractionsService = require('../systems/infractionsService');
-const logger = require('../systems/logger');
-const { handleInfractionAutomation } = require('../systems/automation');
-const { getGuildTrustConfig } = require('../utils/trust');
-const { fetchMember } = require('./discordFetchCache');
-const { getGuild } = require('./guildService');
+const warningsService = require("../systems/warningsService");
+const infractionsService = require("../systems/infractionsService");
+const logger = require("../systems/logger");
+const { handleInfractionAutomation } = require("../systems/automation");
+const { getGuildTrustConfig } = require("../utils/trust");
+const { fetchMember } = require("./discordFetchCache");
+const { getGuild } = require("./guildService");
 
 class ModError extends Error {
   constructor(code, message) {
@@ -49,46 +49,56 @@ async function resolveGuildMember(client, guildId, userId) {
  */
 async function dashboardWarn({ client, guildId, userId, reason, actor }) {
   if (!client) {
-    throw new ModError('CLIENT_NOT_READY', 'Client not ready');
+    throw new ModError("CLIENT_NOT_READY", "Client not ready");
   }
 
-  const r = (reason || '').toString().trim() || 'Dashboard warning';
+  const r = (reason || "").toString().trim() || "Dashboard warning";
 
   const { guild, member } = await resolveGuildMember(client, guildId, userId);
   if (!guild || !member) {
-    throw new ModError('USER_NOT_FOUND_IN_GUILD', 'User not found in guild');
+    throw new ModError("USER_NOT_FOUND_IN_GUILD", "User not found in guild");
   }
 
   const me = guild.members.me;
   if (!me) {
-    throw new ModError('BOT_MEMBER_NOT_AVAILABLE', 'Bot member not available');
+    throw new ModError("BOT_MEMBER_NOT_AVAILABLE", "Bot member not available");
   }
 
   // Regras semelhantes ao comando !warn
   if (member.id === me.id) {
-    throw new ModError('CANNOT_WARN_BOT', 'Cannot warn the bot');
+    throw new ModError("CANNOT_WARN_BOT", "Cannot warn the bot");
   }
 
   if (member.roles.highest.position >= me.roles.highest.position) {
-    throw new ModError('TARGET_ROLE_HIGHER_OR_EQUAL', 'Target role is higher or equal to bot');
+    throw new ModError(
+      "TARGET_ROLE_HIGHER_OR_EQUAL",
+      "Target role is higher or equal to bot",
+    );
   }
 
-  const { PermissionsBitField } = require('discord.js');
+  const { PermissionsBitField } = require("discord.js");
   if (member.permissions.has(PermissionsBitField.Flags.Administrator)) {
-    throw new ModError('CANNOT_WARN_ADMINS', 'Cannot warn administrators via dashboard');
+    throw new ModError(
+      "CANNOT_WARN_ADMINS",
+      "Cannot warn administrators via dashboard",
+    );
   }
 
-  const dbUser = await warningsService.addWarning(guild.id, member.id, 1).catch(() => null);
+  const dbUser = await warningsService
+    .addWarning(guild.id, member.id, 1)
+    .catch(() => null);
 
-  await infractionsService.create({
-    guild,
-    user: member.user,
-    moderator: client.user,
-    type: 'WARN',
-    reason: actor ? `${r} (dashboard: ${actor})` : r,
-    duration: null,
-    source: 'dashboard'
-  }).catch(() => null);
+  await infractionsService
+    .create({
+      guild,
+      user: member.user,
+      moderator: client.user,
+      type: "WARN",
+      reason: actor ? `${r} (dashboard: ${actor})` : r,
+      duration: null,
+      source: "dashboard",
+    })
+    .catch(() => null);
 
   // Automação (auto-mute / auto-kick) baseada nas infrações acumuladas, tal como nos comandos slash
   try {
@@ -97,7 +107,7 @@ async function dashboardWarn({ client, guildId, userId, reason, actor }) {
       guild,
       user: member.user,
       moderator: client.user,
-      type: 'WARN'
+      type: "WARN",
     });
   } catch {
     // ignore automation errors to not quebrar o fluxo principal de warn
@@ -107,21 +117,25 @@ async function dashboardWarn({ client, guildId, userId, reason, actor }) {
   const trust = dbUser?.trust;
   const warnings = dbUser?.warnings ?? null;
 
-  const trustText = (trustCfg.enabled && trust != null)
-    ? `Trust: **${trust}/${trustCfg.max}**`
-    : (trust != null ? `Trust: **${trust}**` : '');
-  const warnsText = warnings != null ? `Warnings: **${warnings}**` : '';
+  const trustText =
+    trustCfg.enabled && trust != null
+      ? `Trust: **${trust}/${trustCfg.max}**`
+      : trust != null
+        ? `Trust: **${trust}**`
+        : "";
+  const warnsText = warnings != null ? `Warnings: **${warnings}**` : "";
 
-  const trustTextLog = trustText ? `\n${trustText}` : '';
-  const warnsTextLog = warnsText ? `\n${warnsText}` : '';
+  const trustTextLog = trustText ? `\n${trustText}` : "";
+  const warnsTextLog = warnsText ? `\n${warnsText}` : "";
 
   await logger(
     client,
-    'Dashboard Warn',
+    "Dashboard Warn",
     member.user,
     client.user,
-    `Reason: **${r}**${warnsTextLog}${trustTextLog}` + (actor ? `\nExecutor (dashboard): **${actor}**` : ''),
-    guild
+    `Reason: **${r}**${warnsTextLog}${trustTextLog}` +
+      (actor ? `\nExecutor (dashboard): **${actor}**` : ""),
+    guild,
   );
 
   return { guild, member, dbUser };
@@ -130,5 +144,5 @@ async function dashboardWarn({ client, guildId, userId, reason, actor }) {
 module.exports = {
   ModError,
   dashboardWarn,
-  resolveGuildMember
+  resolveGuildMember,
 };
