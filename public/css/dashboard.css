@@ -3263,7 +3263,7 @@ summary:focus-visible,
 /* ---- Funcionalidades (tab) ---- */
 .features-grid{
   display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(320px,1fr));
+  grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr));
   align-items:start;
   gap:var(--sp-3);
   margin-top:var(--sp-4);
@@ -3275,6 +3275,7 @@ summary:focus-visible,
 .feature-card{
   display:flex;
   flex-direction:column;
+  min-width:0;
   gap:var(--sp-2);
   padding:12px;
   border:1px solid var(--white-6);
@@ -3383,7 +3384,7 @@ summary:focus-visible,
   gap:var(--sp-2);
   flex-wrap:wrap;
 }
-@media (max-width:1024px){
+@media (max-width:680px){
   .features-grid{grid-template-columns:1fr}
 }
 

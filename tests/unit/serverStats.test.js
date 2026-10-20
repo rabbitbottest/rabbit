@@ -128,3 +128,48 @@ test('removeGuild preserves manual channels and deletes managed stats channels',
     else delete require.cache[modelPath];
   }
 });
+
+test('removeGuild treats Discord Unknown Channel as an already deleted channel', async () => {
+  const modelPath = require.resolve('../../src/database/models/GuildConfig');
+  const originalModel = require.cache[modelPath];
+  let update = null;
+  require.cache[modelPath] = {
+    id: modelPath,
+    filename: modelPath,
+    loaded: true,
+    exports: {
+      findOne: () => ({
+        lean: async () => ({ features: { serverStats: { memberChannelId: 'missing' } } })
+      }),
+      updateOne: async (filter, value) => { update = { filter, value }; }
+    }
+  };
+
+  const channel = {
+    id: 'missing',
+    delete: async () => {
+      throw Object.assign(new Error('Unknown Channel'), { code: 10003 });
+    }
+  };
+  const guild = {
+    id: '123456789012345678',
+    channels: {
+      cache: {
+        get: (id) => id === channel.id ? channel : null,
+        filter: () => []
+      },
+      fetch: async () => null
+    }
+  };
+
+  try {
+    await removeGuild(guild);
+    deepEq(update, {
+      filter: { guildId: guild.id },
+      value: { $set: { 'features.serverStats.memberChannelId': null } }
+    });
+  } finally {
+    if (originalModel) require.cache[modelPath] = originalModel;
+    else delete require.cache[modelPath];
+  }
+});

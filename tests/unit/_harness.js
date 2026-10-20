@@ -2,17 +2,25 @@
 // Runner minimalista de testes unitários (sem dependências externas).
 
 const results = { pass: 0, fail: 0, failures: [] };
+let queue = Promise.resolve();
 
 function test(name, fn) {
-  try {
-    fn();
-    results.pass += 1;
-    console.log('  \u2713 ' + name);
-  } catch (err) {
-    results.fail += 1;
-    results.failures.push({ name, message: err && err.message ? err.message : String(err) });
-    console.error('  \u2717 ' + name + '\n      ' + (err && err.message ? err.message : err));
-  }
+  queue = queue.then(async () => {
+    try {
+      await fn();
+      results.pass += 1;
+      console.log('  \u2713 ' + name);
+    } catch (err) {
+      results.fail += 1;
+      results.failures.push({ name, message: err && err.message ? err.message : String(err) });
+      console.error('  \u2717 ' + name + '\n      ' + (err && err.message ? err.message : err));
+    }
+  });
+}
+
+async function wait() {
+  await queue;
+  return results;
 }
 
 function ok(cond, msg) {
@@ -37,10 +45,10 @@ function throws(fn, msg) {
   let threw = false;
   try {
     fn();
-  } catch (e) {
+  } catch {
     threw = true;
   }
   if (!threw) throw new Error(msg || 'Expected function to throw');
 }
 
-module.exports = { test, ok, eq, deepEq, throws, results };
+module.exports = { test, ok, eq, deepEq, throws, wait, results };

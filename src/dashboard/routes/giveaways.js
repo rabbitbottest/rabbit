@@ -22,6 +22,16 @@ function platformBadgePublicUrl(platform, baseUrl, cacheKey) {
   return '';
 }
 
+function derivePublicBaseUrl(req) {
+  const xfProto = (req.headers['x-forwarded-proto'] || '').toString().split(',')[0].trim();
+  const xfHost = (req.headers['x-forwarded-host'] || '').toString().split(',')[0].trim();
+  const proto = xfProto || req.protocol || 'https';
+  const host = xfHost || req.get('host') || '';
+  if (!host) return null;
+  const p = (proto === 'http' || proto === 'https') ? proto : 'https';
+  return `${p}://${host}`;
+}
+
 function registerGiveawaysRoutes(ctx) {
   const {
     app,
@@ -71,16 +81,6 @@ function registerGiveawaysRoutes(ctx) {
     pollIntervalSeconds: z.number().int().min(60).max(3600).optional(),
     maxPerCycle: z.number().int().min(0).max(50).optional()
   });
-
-  function derivePublicBaseUrl(req) {
-    const xfProto = (req.headers['x-forwarded-proto'] || '').toString().split(',')[0].trim();
-    const xfHost = (req.headers['x-forwarded-host'] || '').toString().split(',')[0].trim();
-    const proto = xfProto || req.protocol || 'https';
-    const host = xfHost || req.get('host') || '';
-    if (!host) return null;
-    const p = (proto === 'http' || proto === 'https') ? proto : 'https';
-    return `${p}://${host}`;
-  }
 
   const ALLOWED_PLATFORMS = new Set(['steam', 'epic-games-store', 'ubisoft']);
 

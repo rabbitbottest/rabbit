@@ -159,6 +159,8 @@ async function deleteManagedChannel(guild, channelId) {
     await channel.delete();
     return true;
   } catch (err) {
+    const errorCode = Number(err && (err.code || (err.rawError && err.rawError.code)));
+    if (errorCode === 10003 || (err && err.status === 404)) return true;
     console.warn(`[serverStats] Falha ao apagar o canal ${channelId}:`, err?.message || err);
     return false;
   }

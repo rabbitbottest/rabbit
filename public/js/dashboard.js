@@ -181,7 +181,7 @@ const API_BASE = '/api';
       await fetch(API_BASE + '/auth/logout', { method: 'POST', credentials: 'same-origin' });
     } catch {}
     try {
-      if (typeof showLogin === 'function') showLogin();
+      if (typeof window.OzarkDashboard.showLogin === 'function') window.OzarkDashboard.showLogin();
     } catch {}
     try {
       if (opts && opts.redirect) {
@@ -201,7 +201,7 @@ const API_BASE = '/api';
       try {
         // Sessão expirada ou token inválido: mostra o ecrã de login.
         // Evitamos reload em loop (especialmente quando o token está num cookie HttpOnly).
-        if (typeof showLogin === 'function') showLogin();
+        if (typeof window.OzarkDashboard.showLogin === 'function') window.OzarkDashboard.showLogin();
       } catch (e) {
         console.error('Failed to show login after 401', e);
       }
@@ -1239,7 +1239,7 @@ function setPanelLoading(panelId, isLoading) {
       if (res && res.reason === 'NO_ELIGIBLE_GUILDS') {
         // User has no eligible guilds (must be owner or Administrator). Force logout and show login message.
         try { await forceLogout(); } catch (e) {}
-        try { if (typeof showLogin === 'function') showLogin(); } catch (e) {}
+        try { if (typeof window.OzarkDashboard.showLogin === 'function') window.OzarkDashboard.showLogin(); } catch (e) {}
         return;
       }
       const items = (res && res.items) || [];
@@ -1292,7 +1292,7 @@ function setPanelLoading(panelId, isLoading) {
           state.guildId = null;
           try { localStorage.removeItem(GUILD_KEY); } catch (e) {}
           select.value = '';
-          try { showGuildSelect(items); } catch (e) {}
+          try { window.OzarkDashboard.showGuildSelect(items); } catch (e) {}
           updateTabAccess();
           return;
         }
@@ -1311,7 +1311,7 @@ function setPanelLoading(panelId, isLoading) {
         }
       } else {
         // Force selection when multiple guilds are available.
-        try { showGuildSelect(items); } catch (e) {}
+        try { window.OzarkDashboard.showGuildSelect(items); } catch (e) {}
         updateTabAccess();
         try { refreshGlobalBanner(); } catch (e) {}
       }
@@ -2377,6 +2377,7 @@ function populateTempVoiceSelects() {
       if (document.body && document.body.dataset) document.body.dataset.tvDirtyBound = '1';
 
       var enabledSel = document.getElementById('tempVoiceEnabled');
+      var headerEnabled = document.getElementById('tempVoiceHeaderEnabled');
       var catInput = document.getElementById('tempVoiceCategoryId');
       var delayInput = document.getElementById('tempVoiceDeleteDelay');
       var maxUsersInput = document.getElementById('tempVoiceMaxUsers');
@@ -2384,9 +2385,18 @@ function populateTempVoiceSelects() {
       [enabledSel, catInput].forEach(function (el) {
         if (!el) return;
         el.addEventListener('change', function () {
+          if (el === enabledSel && headerEnabled) headerEnabled.checked = enabledSel.value === 'true';
           updateTempVoiceDirtyFromUI();
         });
       });
+
+      if (headerEnabled) {
+        headerEnabled.addEventListener('change', function () {
+          if (enabledSel) enabledSel.value = headerEnabled.checked ? 'true' : 'false';
+          updateTempVoiceDirtyFromUI();
+          saveTempVoiceConfig().catch(function () {});
+        });
+      }
 
       [delayInput, maxUsersInput].forEach(function (el) {
         if (!el) return;
@@ -2405,6 +2415,7 @@ function populateTempVoiceSelects() {
 
         var cfg = res.config || {};
         var enabledSel = document.getElementById('tempVoiceEnabled');
+        var headerEnabled = document.getElementById('tempVoiceHeaderEnabled');
         var baseIdInput = document.getElementById('tempVoiceAddBaseSelect') || document.getElementById('tempVoiceBaseId');
         var catInput = document.getElementById('tempVoiceCategoryId');
         var delayInput = document.getElementById('tempVoiceDeleteDelay');
@@ -2423,6 +2434,7 @@ function populateTempVoiceSelects() {
         if (enabledSel) {
           enabledSel.value = cfg.enabled ? 'true' : 'false';
         }
+        if (headerEnabled) headerEnabled.checked = cfg.enabled === true;
         if (baseIdInput) {
           baseIdInput.value = '';
         }
@@ -3162,12 +3174,14 @@ function deleteTempVoiceBaseAt(index) {
 
       guildSelectScreen.classList.remove('hidden');
     }
+    window.OzarkDashboard.showGuildSelect = showGuildSelect;
 
     function showLogin() {
       if (loginScreen) loginScreen.classList.remove('hidden');
       if (loginError) loginError.textContent = '';
       try { if (loginDiscordBtn) loginDiscordBtn.focus(); } catch (e) {}
     }
+    window.OzarkDashboard.showLogin = showLogin;
 
     function hideLogin() {
       if (loginScreen) loginScreen.classList.add('hidden');
